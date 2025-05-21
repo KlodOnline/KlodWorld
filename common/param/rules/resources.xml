@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<resources>
+  <resource>
+    <name>wood</name>
+    <rarity>0</rarity>
+    <stack>100</stack>
+  </resource>
+  <resource>
+    <name>stone</name>
+    <rarity>0</rarity>
+    <stack>100</stack>
+  </resource>
+  <resource>
+    <name>food</name>
+    <rarity>0</rarity>
+    <stack>100</stack>
+  </resource>
+  <resource>
+    <name>gold</name>
+    <rarity>0</rarity>
+    <stack>1000</stack>
+  </resource>
+</resources>

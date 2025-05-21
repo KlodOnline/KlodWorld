@@ -1,0 +1,10 @@
+Comment remettre en route la BDD: 
+
+- couper les services
+	service klodchat stop && service klodgame stop
+- tomber la BDD
+	MariaDB [klodonline]> DROP DATABASE IF EXISTS klodonline;
+- remonter la BDD
+	mysql < worldserver.sql
+- relancer les services
+	service klodchat restart && service klodgame restart

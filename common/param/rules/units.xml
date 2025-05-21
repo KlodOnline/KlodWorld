@@ -1,0 +1,93 @@
+<?xml version="1.0"?>
+<units>
+  <unit>
+    <id>0</id>
+    <name>settler</name>
+    <turn>10</turn>
+    <requisite class="buildings"/>
+    <attack>1</attack>
+    <defense>1</defense>
+    <move>3</move>
+    <fov>1</fov>
+    <orders>MOVE,BUILD_CITY</orders>
+    <inventory>1</inventory>
+    <cost class="resources">
+      <gold>200</gold>
+    </cost>
+  </unit>
+  <unit>
+    <id>1</id>
+    <name>worker</name>
+    <turn>5</turn>
+    <requisite class="buildings"/>
+    <attack>1</attack>
+    <defense>1</defense>
+    <move>2</move>
+    <fov>1</fov>
+    <orders>MOVE,MOVE_ROAD,BUILD_ROAD,CHOP_WOOD</orders>
+    <inventory>2</inventory>
+    <cost class="resources">
+      <gold>100</gold>
+    </cost>
+  </unit>
+  <unit>
+    <id>2</id>
+    <name>warrior</name>
+    <turn>10</turn>
+    <requisite class="buildings">
+      <guardpost>1</guardpost>
+    </requisite>
+    <attack>2</attack>
+    <defense>2</defense>
+    <move>2</move>
+    <fov>1</fov>
+    <orders>MOVE,FORTIFY</orders>
+    <inventory>1</inventory>
+    <cost class="resources">
+      <gold>200</gold>
+    </cost>
+  </unit>
+  <unit>
+    <id>3</id>
+    <name>lightcavalry</name>
+    <turn>10</turn>
+    <requisite class="buildings">
+      <stable>1</stable>
+    </requisite>
+    <attack>1</attack>
+    <defense>1</defense>
+    <move>1</move>
+    <fov>1</fov>
+    <orders>MOVE</orders>
+    <inventory>0</inventory>
+    <cost class="resources">
+      <gold>100</gold>
+    </cost>
+  </unit>
+  <unit>
+    <id>4</id>
+    <name>wfort</name>
+    <turn>0</turn>
+    <requisite class="buildings"/>
+    <attack>0</attack>
+    <defense>3</defense>
+    <move>0</move>
+    <fov>2</fov>
+    <orders>UNFORTIFY</orders>
+    <inventory>1</inventory>
+    <cost class="resources"/>
+  </unit>
+  <unit>
+    <id>5</id>
+    <name>camp</name>
+    <turn>0</turn>
+    <requisite class="buildings"/>
+    <attack>0</attack>
+    <defense>1</defense>
+    <move>0</move>
+    <fov>3</fov>
+    <orders>UNCAMP</orders>
+    <inventory>0</inventory>
+    <cost class="resources"/>
+  </unit>
+</units>

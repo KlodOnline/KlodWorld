@@ -1,0 +1,198 @@
+<?xml version="1.0"?>
+<buildings>
+  <building>
+    <name>guardpost</name>
+    <militarypoint>0</militarypoint>
+    <industrypoint>0</industrypoint>
+    <tradingpoint>0</tradingpoint>
+    <requisite class="buildings"/>
+    <tree>military</tree>
+    <points>4</points>
+    <cost class="resources">
+      <wood>10</wood>
+      <stone>5</stone>
+    </cost>
+  </building>
+  <building>
+    <name>watchtower</name>
+    <militarypoint>0</militarypoint>
+    <industrypoint>0</industrypoint>
+    <tradingpoint>0</tradingpoint>
+    <requisite class="buildings"/>
+    <tree>military</tree>
+    <points>3</points>
+    <cost class="resources">
+      <wood>5</wood>
+    </cost>
+  </building>
+  <building>
+    <name>fortification</name>
+    <militarypoint>0</militarypoint>
+    <industrypoint>0</industrypoint>
+    <tradingpoint>0</tradingpoint>
+    <requisite class="buildings"/>
+    <tree>military</tree>
+    <points>3</points>
+    <cost class="resources">
+      <wood>5</wood>
+      <stone>10</stone>
+    </cost>
+  </building>
+  <building>
+    <name>barracks</name>
+    <militarypoint>4</militarypoint>
+    <industrypoint>0</industrypoint>
+    <tradingpoint>0</tradingpoint>
+    <requisite class="buildings">
+      <guardpost>1</guardpost>
+    </requisite>
+    <tree>military</tree>
+    <points>5</points>
+    <cost class="resources">
+      <wood>10</wood>
+      <stone>20</stone>
+    </cost>
+  </building>
+  <building>
+    <name>stable</name>
+    <militarypoint>5</militarypoint>
+    <industrypoint>0</industrypoint>
+    <tradingpoint>0</tradingpoint>
+    <requisite class="buildings"/>
+    <tree>military</tree>
+    <points>5</points>
+    <cost class="resources">
+      <wood>20</wood>
+      <stone>10</stone>
+    </cost>
+  </building>
+  <building>
+    <name>archery</name>
+    <militarypoint>5</militarypoint>
+    <industrypoint>0</industrypoint>
+    <tradingpoint>0</tradingpoint>
+    <requisite class="buildings">
+      <guardpost>1</guardpost>
+    </requisite>
+    <tree>military</tree>
+    <points>5</points>
+    <cost class="resources">
+      <wood>15</wood>
+      <stone>15</stone>
+    </cost>
+  </building>
+  <building>
+    <name>headquarter</name>
+    <militarypoint>7</militarypoint>
+    <industrypoint>0</industrypoint>
+    <tradingpoint>0</tradingpoint>
+    <requisite class="buildings"/>
+    <tree>military</tree>
+    <points>5</points>
+    <cost class="resources">
+      <wood>20</wood>
+      <stone>20</stone>
+    </cost>
+  </building>
+  <building>
+    <name>reinforcedstable</name>
+    <militarypoint>8</militarypoint>
+    <industrypoint>0</industrypoint>
+    <tradingpoint>0</tradingpoint>
+    <requisite class="buildings">
+      <stable>1</stable>
+    </requisite>
+    <tree>military</tree>
+    <points>8</points>
+    <cost class="resources">
+      <wood>40</wood>
+      <stone>20</stone>
+    </cost>
+  </building>
+  <building>
+    <name>advancedarchery</name>
+    <militarypoint>8</militarypoint>
+    <industrypoint>0</industrypoint>
+    <tradingpoint>0</tradingpoint>
+    <requisite class="buildings">
+      <archery>1</archery>
+    </requisite>
+    <tree>military</tree>
+    <points>8</points>
+    <cost class="resources">
+      <wood>30</wood>
+      <stone>30</stone>
+    </cost>
+  </building>
+  <building>
+    <name>armory</name>
+    <militarypoint>10</militarypoint>
+    <industrypoint>0</industrypoint>
+    <tradingpoint>0</tradingpoint>
+    <requisite class="buildings"/>
+    <tree>military</tree>
+    <points>8</points>
+    <cost class="resources">
+      <wood>40</wood>
+      <stone>40</stone>
+    </cost>
+  </building>
+  <building>
+    <name>elitestable</name>
+    <militarypoint>15</militarypoint>
+    <industrypoint>0</industrypoint>
+    <tradingpoint>0</tradingpoint>
+    <requisite class="buildings">
+      <reinforcedstable>1</reinforcedstable>
+    </requisite>
+    <tree>military</tree>
+    <points>10</points>
+    <cost class="resources">
+      <wood>80</wood>
+      <stone>40</stone>
+    </cost>
+  </building>
+  <building>
+    <name>siegeworkshop</name>
+    <militarypoint>15</militarypoint>
+    <industrypoint>0</industrypoint>
+    <tradingpoint>0</tradingpoint>
+    <requisite class="buildings"/>
+    <tree>military</tree>
+    <points>10</points>
+    <cost class="resources">
+      <wood>60</wood>
+      <stone>60</stone>
+    </cost>
+  </building>
+  <building>
+    <name>advancedbarracks</name>
+    <militarypoint>15</militarypoint>
+    <industrypoint>0</industrypoint>
+    <tradingpoint>0</tradingpoint>
+    <requisite class="buildings">
+      <barracks>1</barracks>
+    </requisite>
+    <tree>military</tree>
+    <points>10</points>
+    <cost class="resources">
+      <wood>40</wood>
+      <stone>80</stone>
+    </cost>
+  </building>
+  <building>
+    <name>bigheadquarter</name>
+    <militarypoint>20</militarypoint>
+    <industrypoint>0</industrypoint>
+    <tradingpoint>0</tradingpoint>
+    <requisite class="buildings">
+      <headquarter>1</headquarter>
+    </requisite>
+    <tree>military</tree>
+    <points>20</points>
+    <cost class="resources">
+      <wood>100</wood>
+      <stone>100</stone>
+    </cost>
+  </building>
+</buildings>
