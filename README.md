@@ -13,7 +13,7 @@
 ## General organisation
 to do.
 ## Setup
-This how you can setup a "KlodWorld" Server to test it on you own homelab :
+This is how you can setup a "KlodWorld" Server to test it on your own homelab :
   - Have a LAMP (either a VM, a CT, or baremetal)
   - Upload sources in /var/klodworld/
   - Go to /var/klodworld/setup
