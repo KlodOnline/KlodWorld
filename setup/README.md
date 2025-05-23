@@ -20,3 +20,29 @@ To deploy a **KlodWorld** server on your own infrastructure/homelab:
 Your server should now be accessible at: `https://<your-ip-or-domain>:443`
 6. At the end of the setup, follow the prompts to register the world server in the **KlodWeb** database. This step is necessary to make the world accessible to players via the portal.
 Your server should now be accessible at `https://<your-ip-or-domain>:443` for the web interface, and at `https://<your-ip-or-domain>:8080` for the nodejs websocket allowing that system. 
+
+## Advanced Maintenance
+
+### Manual Database Reset
+
+In some cases (e.g. full reset, testing, corrupted data), you may need to reset the KlodWorld database.
+
+#### ⚠️ WARNING
+
+This process **erases all data** in the current world (players, cities, empires, etc.). Use with caution.
+
+#### Steps
+
+- **Stop services**  
+  `service klodchat stop && service klodgame stop`
+
+- **Drop the existing database** (in MariaDB prompt)  
+  `DROP DATABASE IF EXISTS klodonline;`
+
+- **Recreate the database from schema**  
+  `mysql < worldserver.sql`
+
+- **Restart services**  
+  `service klodchat restart && service klodgame restart`
+
+Your world instance should now be reset and ready for a clean start.
