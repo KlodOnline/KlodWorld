@@ -1,15 +1,21 @@
 # Setup
 
-This folder contains the scripts and tools needed to automate the installation of a _KlodWeb_ server.
+This folder contains the scripts and tools needed to automate the installation of a _KlodWorld_ server.
 
-## Requirements
+## To-Do List
+
+  - `setup.sh` actually add daemons the "old way" because of Docker images (files in `/etc/init.d` and usage with `service [name] start|stop` etc.) The script should detect if we have **systemctl** available or not and behave properly according to.
+
+## Usage
+
+### Requirements
 
 - A working LAMP environment (Linux + Apache + MySQL + PHP)
   - Can be a virtual machine, container (CT), or bare-metal server
 - Root access to install and configure services
 - Access to the KlodWeb database to register the world server
 
-## Usage
+### How-to
 
 To deploy a **KlodWorld** server on your own infrastructure/homelab:
 1. Set up a LAMP environment (can be a VM, container, or bare-metal).

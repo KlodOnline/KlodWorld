@@ -8,10 +8,8 @@
 
 ## To-Do List
 
-- Add a README in the `setup` folder to explain how to deploy a game world
 - Refactor code to improve readability and make teamwork easier
 - Review and harden the authentication process
-- Implement a streamlined world setup (ensure `setup.sh` can launch a fully functional world with default names and passwords)
 - Add monitoring/logging tools for live world management
 - Optimize performance for large-scale, persistent simulations
 
