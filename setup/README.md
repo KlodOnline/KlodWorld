@@ -25,6 +25,7 @@ To deploy a **KlodWorld** server on your own infrastructure/homelab:
 5. Run `setup.sh` with root privileges.
 Your server should now be accessible at: `https://<your-ip-or-domain>:443`
 6. At the end of the setup, follow the prompts to register the world server in the **KlodWeb** database. This step is necessary to make the world accessible to players via the portal.
+
 Your server should now be accessible at `https://<your-ip-or-domain>:443` for the web interface, and at `https://<your-ip-or-domain>:8080` for the nodejs websocket allowing that system. 
 
 ## Advanced Maintenance
