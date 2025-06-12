@@ -1,0 +1,18 @@
+{
+  "name": "klodworldchat",
+  "version": "1.0.0",
+  "description": "Chat module for KlodWorld",
+  "main": "main.js",
+  "scripts": {
+    "start": "node main.js"
+  },
+  "dependencies": {
+    "ini": "*",
+    "jsonwebtoken": "*",
+    "mysql2": "*",
+    "socket.io": "^4.8.0"
+  },
+  "engines": {
+    "node": ">=14.x"
+  }
+}
