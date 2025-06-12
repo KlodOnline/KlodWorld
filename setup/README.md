@@ -40,6 +40,7 @@ Server runs critical daemons :
 - **klodgame** which runs turns in infinite loop at `game/klodgame.php`
 - **klodchat** which allows players interactions at `chat/klodchat.js`
 - **mariadb** which well... you knows.
+
 klodgame & klodchat are custom daemons. They must be managed by usual command `service [daemon] start|stop|status`. Ports are defined by `common/param/config.ini`.
 
 ### Manual Database Reset
