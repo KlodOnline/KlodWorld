@@ -4,7 +4,7 @@ This folder contains the scripts and tools needed to automate the installation o
 
 ## To-Do List
 
-  - `setup.sh` actually add daemons the "old way" because of Docker images (files in `/etc/init.d` and usage with `service [name] start|stop` etc.) The script should detect if we have **systemctl** available or not and behave properly according to.
+- `setup.sh` actually add daemons the "old way" because of Docker images (files in `/etc/init.d` and usage with `service [name] start|stop` etc.) The script should detect if we have **systemctl** available or not and behave properly according to.
 
 ## Usage
 
@@ -29,6 +29,18 @@ Your server should now be accessible at: `https://<your-ip-or-domain>:443`
 Your server should now be accessible at `https://<your-ip-or-domain>:443` for the web interface, and at `https://<your-ip-or-domain>:8080` for the nodejs websocket allowing that system. 
 
 ## Advanced Maintenance
+
+### Services explanations
+
+Server runs critical daemons : 
+- **apache2** which allows :
+  - Players to have a GUI at `www/index.php`
+  - Game Masters to have a GUI at `www/gm_index.php`
+  - Main website to have a status at `www/status.php`
+- **klodgame** which runs turns in infinite loop at `game/klodgame.php`
+- **klodchat** which allows players interactions at `chat/klodchat.js`
+- **mariadb** which well... you knows.
+klodgame & klodchat are custom daemons. They must be managed by usual command `service [daemon] start|stop|status`. Ports are defined by `common/param/config.ini`.
 
 ### Manual Database Reset
 
