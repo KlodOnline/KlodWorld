@@ -36,4 +36,4 @@ _To be written._
 
 ## Setup
 
-See the `README.md` file in the [`setup`](./setup) folder for installation instructions.
+See the `README.md` file in the [`setup`](./setup) folder for installation and maintenance instructions.
