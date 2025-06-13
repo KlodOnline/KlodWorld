@@ -7,9 +7,7 @@
     "start": "node main.js"
   },
   "dependencies": {
-    "ini": "*",
     "jsonwebtoken": "*",
-    "mysql2": "*",
     "socket.io": "^4.8.0"
   },
   "engines": {

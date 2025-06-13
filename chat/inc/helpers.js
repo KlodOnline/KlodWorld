@@ -17,7 +17,7 @@ function Helpers() {
         {
         coord.col = this.real_colonne(coord.col, max_col);
         };
-
+/*
     this.real_colonne = function(colonne, max_col)
         {
         if (colonne>max_col-1)
@@ -32,7 +32,7 @@ function Helpers() {
             };
         return colonne;            
         };            
-
+*/
     this.log = function(txt, who = '')
         {
         if (who!=='') {who = who + ': '}
@@ -55,7 +55,7 @@ function Helpers() {
 
         return parsed // Could be undefined!
     };
-
+/*
     this.random_color = function(colors) {
         const shuffledArray = colors.sort((a, b) => 0.5 - Math.random());
         return shuffledArray[0]['name']+' '+shuffledArray[1]['name'];
@@ -111,7 +111,7 @@ function Helpers() {
 
         return chars_requ;
     };
-
+*/
     this.select_all = async function(table,sql_connection){
         const request = 'SELECT * FROM '+table+';';
         return await sql_connection.query(request); 
