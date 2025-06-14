@@ -29,9 +29,7 @@ It is designed to support both:
 - Free demo worlds (reset monthly)
 - Premium persistent worlds
 
-## General Organization
-
-# KlodOnline Project - General Code Organization
+## General Code Organization
 
 - **`chat/`**: Node.js server dedicated to real-time chat. Contains server files (`klodchat.js`), JS helpers, and `package.json` for dependencies.
 - **`common/`**: Shared PHP libraries and files back/front
