@@ -2,9 +2,12 @@
     HELPERS
 ==============================================================================*/
 
+const jwt = require('jsonwebtoken');
+
 class Helpers {
     constructor() {
         this.log = this.log.bind(this);
+        this.verifyToken = this.verifyToken.bind(this);
     }
 
     log(txt, who = '') {
@@ -15,13 +18,12 @@ class Helpers {
         console.log(`${date} [${time}] ${prefix}${txt}`);
     }
 
-    safelyParseJSON(json) {
+    verifyToken(token, secret) {
         try {
-            return JSON.parse(json);
-        } catch (e) {
-            this.log('Bad JSON Object !', 'HELPERS');
-            // console.log(json);
-            return {};
+            return jwt.verify(token, secret);
+        } catch (err) {
+            this.log(`Token invalid: ${err.message}`, 'HELPERS');
+            throw new Error('Invalid token');
         }
     }
 }

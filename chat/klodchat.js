@@ -2,9 +2,9 @@
     KLODCHAT
 
     Right now :
-        Client connect with browser to IP:2080
-        Docker links (ext) 2080 -> (int) 8080
+        Client connect with browser to IP:CHAT_PORT (Cf. config.ini)
         socketio server listens to 8080
+        It's up to you to bind 8080<->2080
 
     Todo :
     	(eventually, if possible)
@@ -15,23 +15,17 @@
 ==============================================================================*/
 console.clear();
 
-/*------------------------------------------------------------------------------
-    External Libraries
- -----------------------------------------------------------------------------*/
 const { execSync } = require('child_process');
 const ini = require('ini');
 const fs = require('fs');
+const socketIo = require('socket.io');
+const http = require('http');
+const jwt = require('jsonwebtoken'); 
 
-/*------------------------------------------------------------------------------
-    Internal Modules
- -----------------------------------------------------------------------------*/
 const HELP = require('./inc/helpers');
+const COMMANDS = require('./inc/commands');
 
-/*------------------------------------------------------------------------------
-    Klodchat
- -----------------------------------------------------------------------------*/
-
-// Checks if another instance of this script is already running.
+// Verrouillage d’instance
 const scriptName = __filename.split('/').pop();
 const result = execSync(`ps aux | grep ${scriptName} | grep -v grep | grep -v 'sh -c'`).toString();
 if (result.split('\n').length > 2) {
@@ -39,16 +33,12 @@ if (result.split('\n').length > 2) {
     process.exit();
 }
 
-// Reads INI file containing world/server parameters.
+// Chargement config
 const CONFIG_INI = ini.parse(fs.readFileSync(__dirname + '/../common/param/config.ini', 'utf-8'));
 
-// Initialize HTTP Server (required for Socket.IO). No HTTP endpoints are served
-// here; used only as a Socket.IO transport layer.
-const server = require('http').createServer();
-
-// Initialize Socket.IO with CORS configuration. Restricts connections to the
-// configured frontend server address.
-const io = require('socket.io')(server, {
+// Serveur HTTP + socket.io
+const server = http.createServer();
+const io = new socketIo.Server(server, {
     cors: {
         origin: "https://" + CONFIG_INI['world']['world_ip'] + ":" + CONFIG_INI['world']['game_port'],
         methods: ["GET", "POST"],
@@ -57,19 +47,54 @@ const io = require('socket.io')(server, {
     }
 });
 
-// Start Server listens on port 8080 for incoming WebSocket connections.
+
+// Démarrage serveur
 server.listen(8080, () => {
     HELP.log(`Server listening on port 8080`);
 });
 
-// Import Server I/O Logic Contains Socket.IO event handlers and communication logic.
-const server_io = require('./inc/server_io');
+// Middleware Socket.IO pour vérifier le JWT à la connexion
 
-// Async Await and other NodeJS Lifestyle.
-async function launch_tchat() {
-	// Listen to the plebs
-    server_io.listen(io, CONFIG_INI['world']);
-}
+io.use((socket, next) => {
+    const token = socket.handshake.query?.token;
+    if (!token) return next(new Error('Authentication error: Token missing'));
 
-// Launch Tchat I/O Starts listening to client connections via server_io module.
-launch_tchat();
+    jwt.verify(token, CONFIG_INI.world.jwt_secret, (err, decoded) => {
+        if (err) return next(new Error('Authentication error: Invalid token'));
+
+        socket.decoded = decoded;
+
+        if (decoded.meta_id === 0) {
+            return next(new Error('No account'));
+        }
+
+        if (!CONFIG_INI.world.demo) {
+            const now = Math.floor(Date.now() / 1000);
+            if (decoded.fee_paid < now) {
+                return next(new Error('Fee unpaid'));
+            }
+        }
+
+        socket.player_id = decoded.meta_id;
+        socket.player_name = decoded.name;
+
+        HELP.log(`User << ${socket.player_name} >> authenticated`, 'KLODCHAT');
+
+        next();
+    });
+});
+
+
+io.on('connection', (socket) => {
+    HELP.log(`User connected: ${socket.player_id}`);
+
+    socket.on('disconnect', (reason) => {
+        HELP.log(`User disconnected: ${socket.player_id} Reason: ${reason}`);
+    });
+
+    socket.on('COM', (msg, callback) => {
+		COMMANDS.handle(io, socket, msg, callback);
+		// callback used in www/js/client_io.js
+    });
+
+});

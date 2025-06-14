@@ -1,16 +1,17 @@
 {
-  "name": "klodworldchat",
+  "name": "klodonline-chat-server",
   "version": "1.0.0",
-  "description": "Chat module for KlodWorld",
-  "main": "main.js",
+  "description": "Serveur Node.js pour le module chat de KlodOnline",
+  "main": "klodchat.js",
   "scripts": {
-    "start": "node main.js"
+    "start": "node klodchat.js"
   },
   "dependencies": {
-    "jsonwebtoken": "*",
-    "socket.io": "^4.8.0"
+    "socket.io": "^4.7.2",
+    "jsonwebtoken": "^9.0.0"
   },
   "engines": {
-    "node": ">=14.x"
-  }
+    "node": ">=16"
+  },
+  "author": "KlodOnline Dev Team"
 }
