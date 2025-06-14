@@ -93,6 +93,7 @@ website = "$MAIN_WEBSITE"
 world_ip = "$WORLD_IP"
 chat_port = $CHAT_PORT
 game_port = $GAME_PORT
+jwt_secret = "SECRET_KEY"
 EOL
 
 # Générer la commande SQL
