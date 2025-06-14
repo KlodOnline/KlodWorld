@@ -13,7 +13,6 @@
     	NodeJS uses the same certificate as Apache, but manage is own SSL shit.
 
 ==============================================================================*/
-
 console.clear();
 
 /*------------------------------------------------------------------------------
@@ -29,36 +28,26 @@ const fs = require('fs');
 const HELP = require('./inc/helpers');
 
 /*------------------------------------------------------------------------------
-    Script Metadata
+    Klodchat
  -----------------------------------------------------------------------------*/
-const scriptName = __filename.split('/').pop();
 
-/*------------------------------------------------------------------------------
-    Prevent Multiple Instances
-    - Checks if another instance of this script is already running.
- -----------------------------------------------------------------------------*/
+// Checks if another instance of this script is already running.
+const scriptName = __filename.split('/').pop();
 const result = execSync(`ps aux | grep ${scriptName} | grep -v grep | grep -v 'sh -c'`).toString();
 if (result.split('\n').length > 2) {
-    HELP.log("Le script est déjà en cours d'exécution.");
+    HELP.log("Error : Klodchat can't run twice.");
     process.exit();
 }
 
-/*------------------------------------------------------------------------------
-    Load Configuration File
-    - Reads INI file containing world/server parameters.
- -----------------------------------------------------------------------------*/
+// Reads INI file containing world/server parameters.
 const CONFIG_INI = ini.parse(fs.readFileSync(__dirname + '/../common/param/config.ini', 'utf-8'));
 
-/*------------------------------------------------------------------------------
-    Initialize HTTP Server (required for Socket.IO)
-    - No HTTP endpoints are served here; used only as a Socket.IO transport layer.
- -----------------------------------------------------------------------------*/
+// Initialize HTTP Server (required for Socket.IO). No HTTP endpoints are served
+// here; used only as a Socket.IO transport layer.
 const server = require('http').createServer();
 
-/*------------------------------------------------------------------------------
-    Initialize Socket.IO with CORS configuration
-    - Restricts connections to the configured frontend server address.
- -----------------------------------------------------------------------------*/
+// Initialize Socket.IO with CORS configuration. Restricts connections to the
+// configured frontend server address.
 const io = require('socket.io')(server, {
     cors: {
         origin: "https://" + CONFIG_INI['world']['world_ip'] + ":" + CONFIG_INI['world']['game_port'],
@@ -68,28 +57,19 @@ const io = require('socket.io')(server, {
     }
 });
 
-/*------------------------------------------------------------------------------
-    Start Server
-    - Listens on port 8080 for incoming WebSocket connections.
- -----------------------------------------------------------------------------*/
+// Start Server listens on port 8080 for incoming WebSocket connections.
 server.listen(8080, () => {
     HELP.log(`Server listening on port 8080`);
 });
 
-/*------------------------------------------------------------------------------
-    Import Server I/O Logic
-    - Contains Socket.IO event handlers and communication logic.
- -----------------------------------------------------------------------------*/
+// Import Server I/O Logic Contains Socket.IO event handlers and communication logic.
 const server_io = require('./inc/server_io');
 
-/*------------------------------------------------------------------------------
-    Launch Tchat I/O
-    - Starts listening to client connections via server_io module.
- -----------------------------------------------------------------------------*/
 // Async Await and other NodeJS Lifestyle.
 async function launch_tchat() {
 	// Listen to the plebs
     server_io.listen(io, CONFIG_INI['world']);
 }
 
+// Launch Tchat I/O Starts listening to client connections via server_io module.
 launch_tchat();
