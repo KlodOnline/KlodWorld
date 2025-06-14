@@ -43,6 +43,10 @@ Server runs critical daemons :
 
 klodgame & klodchat are custom daemons. They must be managed by usual command `service [daemon] start|stop|status`. Ports are defined by `common/param/config.ini`.
 
+### Logs
+
+Server-side logging belongs to /var/log/klodworld and are managed by logrotate, as it should.
+
 ### Manual Database Reset
 
 In some cases (e.g. full reset, testing, corrupted data), you may need to reset the KlodWorld database.
