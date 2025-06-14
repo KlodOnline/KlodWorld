@@ -8,6 +8,11 @@
     Pour l'authentification :
         Emettre un JWT sur le site principal ?
         Tester ce JWT sur mes sites secondaires ? 
+	
+	To do : 
+	Separate websocket from php API, websocket are dedicated to
+	the chat system, API to the game system.
+
 
 ==>>>
 https://stackoverflow.com/questions/36788831/authenticating-socket-io-connections-using-jwt
