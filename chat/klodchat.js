@@ -88,13 +88,17 @@ io.use((socket, next) => {
 io.on('connection', (socket) => {
     HELP.log(`User connected: ${socket.player_id}`);
 
+    const msg = `Bienvenue sur le serveur ${CONFIG_INI['world']['world_name']} !`;
+    COMMANDS.sendToSocket(socket, 'TCH', { name: 'Server', msg, col: '#F04D84' });
+
     socket.on('disconnect', (reason) => {
         HELP.log(`User disconnected: ${socket.player_id} Reason: ${reason}`);
     });
 
     socket.on('COM', (msg, callback) => {
+    	HELP.log(`Handling COM request : ${JSON.stringify(msg)}`, `KLODCHAT`)
 		COMMANDS.handle(io, socket, msg, callback);
-		// callback used in www/js/client_io.js
+		// callback is used in www/js/client_io.js
     });
 
 });
