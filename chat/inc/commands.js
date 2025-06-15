@@ -6,6 +6,10 @@
 ==============================================================================*/
 const HELP = require('./helpers');
 
+const admin_color = '#0962B6';
+const server_color = '#F04D84';
+const whisp_color = '#F980ef';
+
 class CommandHandler {
     constructor() {
         this.io = null;
@@ -29,7 +33,6 @@ class CommandHandler {
 
         for (const socket of this.io.sockets.sockets.values()) {
             if (socket.player_name === nick) {
-                HELP.log(`found ${nick}`, 'COMMANDS');
                 return socket;
             }
         }
@@ -43,7 +46,7 @@ class CommandHandler {
     }
 
     broadcast(event, data) {
-        HELP.log(`Sending ${JSON.stringify(data)}`, 'COMMANDS');
+        // Usable one day in case of guild & similar system :
         // this.io.to('ingame').emit(event, data);
 		this.io.emit(event, data); // Envoie à **tous** les sockets connectés
     }
@@ -66,7 +69,7 @@ class CommandHandler {
         const payload = {
             name: socket.player_name,
             msg,
-            col: socket.player_id === '1' ? '#0962B6' : undefined,
+            col: Number(socket.player_id) === 1 ? admin_color : undefined,
         };
 
         this.broadcast('TCH', payload);
@@ -78,7 +81,7 @@ class CommandHandler {
         const count = this.io.sockets.sockets.size;
         const msg = `(${count}) Joueurs en ligne.`;
 
-        this.sendToSocket(socket, 'TCH', { name: 'Server', msg, col: '#F04D84' });
+        this.sendToSocket(socket, 'TCH', { name: 'Server', msg, col: server_color });
         callback?.({ success: true });
     }
 
@@ -92,7 +95,7 @@ class CommandHandler {
 	    });
 
 	    const msg = `(${sockets.length}) Joueurs en ligne : ${nameList.join(', ')}`;
-	    this.sendToSocket(socket, 'TCH', { name: 'Server', msg, col: '#F04D84' });
+	    this.sendToSocket(socket, 'TCH', { name: 'Server', msg, col: server_color });
 	    callback?.({ success: true });
 	}
 
@@ -101,7 +104,7 @@ class CommandHandler {
         if (!socket?.player_id || typeof nick !== 'string' || typeof msg !== 'string') return;
 
         const dest = this.getSocketByNick(nick);
-        const payload = { name: socket.player_name, msg, col: '#F980ef' };
+        const payload = { name: socket.player_name, msg, col: whisp_color };
 
         if (dest) {
             this.sendToSocket(dest, 'TCH', payload);
@@ -109,7 +112,7 @@ class CommandHandler {
             callback?.({ success: true });
         } else {
             const errorMsg = `Pas de joueur "${nick}" en jeu.`;
-            this.sendToSocket(socket, 'TCH', { name: 'Server', msg: errorMsg, col: '#F04D84' });
+            this.sendToSocket(socket, 'TCH', { name: 'Server', msg: errorMsg, col: server_color });
             callback?.({ error: errorMsg });
         }
     }
