@@ -1,4 +1,5 @@
 # KlodWorld
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/KlodOnline/KlodWorld)
 
 ## General Policies
 
