@@ -13,7 +13,6 @@ Math.seedrandom('UniqueSeedForGraphicsYeah');
 
 let LEAFLET_MAP = null;                 // Leaflet map object
 
-let T = new Tchat();
 let Mv = null;
 let Mm = null;
 let Mb = null;

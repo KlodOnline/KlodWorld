@@ -10,19 +10,13 @@ function ClientIO() {
 
     /*--------------------------------------------------------------------------
         All that pre-exists : 
-    --------------------------------------------------------------------------*/  
-    if (typeof token === 'undefined') { document.location.href=WEBSITE; }
+    --------------------------------------------------------------------------*/
 
-    this.socket = io.connect('http://'+WORLD_IP+':'+CHATPORT, {
-    	query:{token},
-    	// transports: ['websocket'] 
-	}); 
+    // if (typeof token === 'undefined') { document.location.href=WEBSITE; }
+
     this.last_request = Date.now();
     const that = this;
 
-    // Écoute les erreurs de connexion
-    // this.socket.on('connect_error', (err) => { logForce('Erreur de connexion :', err); });    
-    
     /*--------------------------------------------------------------------------
         Server COM (Read / Send)
     --------------------------------------------------------------------------*/
@@ -92,9 +86,6 @@ function ClientIO() {
         while((Date.now()-that.last_request)<150) {  }
         that.last_request = Date.now();
         // Chaque module doit avoir son propre cache. Ne rien faire ici !    
-        var json_request = JSON.stringify({'t':type,'m':msg});
-        logMessage(json_request);
-        this.socket.emit('COM', json_request, function(data) { callback(data); });
     };
 };
 

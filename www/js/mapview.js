@@ -913,6 +913,16 @@ function Mapview(max_col, max_row, start_coord)
         Mm.draw_focus();
         return false;
         };
+
+    this.server_rst = function () {
+    	
+        that.cache =  [];
+        Se.serverRefresh();
+        that.refresh();
+        return false;
+    }
+
+/*        
     C.socket.on('RST', function(data) 
         {
         that.cache =  [];
@@ -920,7 +930,7 @@ function Mapview(max_col, max_row, start_coord)
         that.refresh();
         return false;
         });
-
+*/
     $(document).on('contextmenu', function(e) {
         return false;
     }, false);

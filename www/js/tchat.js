@@ -1,201 +1,169 @@
+"use strict";
+
 /*==============================================================================
-    Tchat Module
-
-        Le proposer aussi dans une fenetre totalement séparée ?
-
+    TchatIO v0.2.0
+    Minimal WebSocket interface for in-game chat communication
 ==============================================================================*/
 
-function Tchat()
-    {
-    this.last = []; 
-    this.curr_key = 0;
-    // this.last_whisp = '';
+function TchatIO() {
+
+    // Redirect if auth token is missing
+    if (typeof token === 'undefined') {
+        location.href = WEBSITE;
+        return;
+    }
+
+    // Connect to chat server
+    this.socket = io.connect(`http://${WORLD_IP}:${CHATPORT}`, {
+        query: { token }
+        // transports: ['websocket'] // optional forced transport
+    });
+
+    // Send data via WebSocket
+    this.ask_data = (type, msg = '', callback = () => {}, first_try = true) => {
+        const payload = JSON.stringify({ t: type, m: msg });
+        logMessage(`WS SEND: ${payload}`);
+        this.socket.emit('COM', payload, callback);
+    };
+
+    // Optional: expose socket for external listeners
+    this.on = (event, handler) => this.socket.on(event, handler);
+    this.disconnect = () => this.socket.disconnect();
+    this.reconnect = () => this.socket.connect();
+};
+
+// Global instance
+const TC = new TchatIO();
+
+/*==============================================================================
+    Tchat Module - Real-time chat window with commands and interaction
+==============================================================================*/
+
+function Tchat() {
+    this.history = [];
+    this.currKey = 0;
+    const that = this;
+
+    // Returns current time formatted as [HH:MM:SS]
+    this.humanDate = () => {
+        const d = new Date();
+        return `[${String(d.getHours()).padStart(2,'0')}:` +
+               `${String(d.getMinutes()).padStart(2,'0')}:` +
+               `${String(d.getSeconds()).padStart(2,'0')}]`;
+    };
+
+    // Display a received message in chat, with optional color and link coords formatting
+    this.receiveMsg = (nick, msg, color = '#d3d3d3') => {
+        // Convert coordinates [xxx,yyy] to clickable spans
+        msg = msg.replace(/\[[0-9]+,[0-9]+\]/g, c => `<span class="coords">${c}</span>`);
+        const txt = `<span style="color:${color}">${that.humanDate()} [<span class="nick">${nick}</span>]: ${msg}</span><br/>`;
         
-    var that = this;
-  
-    this.human_date = function()
-        {
-        var d = new Date();
-        return ('['+ (('0'+d.getHours()).slice(-2))+':'
-            +(('0'+d.getMinutes()).slice(-2))+':'
-            +(('0'+d.getSeconds()).slice(-2))+']');
-        };
-    this.rcpt_msg = function (nick, msg, color = '#d3d3d3')
-        {
-        // Si dans le message il y a une position ( [xxx,yyy] ) on la transforme en link de mapview :) 
-        var coords_regex = /\[[0-9]+\,[0-9]+\]/g;
-        msg = msg.replace(coords_regex, function(stg){return '<span class="coords">'+stg+'</span>';});
-        var txt = '<span style="color:'+color+'">'+this.human_date()+' [<span class="nick">'+nick+'</span>]: '+msg+'</span><br/>';
+        $('#messages').append(txt).animate({scrollTop: $('#messages')[0].scrollHeight}, 50);
 
-        // if (color==='#F980ef') { this.last_whisp = nick; }
+        if (document.hidden && color === '#F980ef') blinkTab('New whisp !');
 
-        $('#messages').append(txt);
-        $('#messages').animate({scrollTop: $('#messages')[0].scrollHeight}, 50);
-        
-        if (document.hidden) 
-            { if (color==='#F980ef') { blinkTab('New whisp !'); } }
-        
-        this.fade_to_visible();
+        that.fadeToVisible();
+    };
 
-        };
-    this.client_talk = function(msg)
-        {
-        this.rcpt_msg('Client', msg, '#efcd25');
-        };
-        
-    this.cmd_help = function()
-        {
-        var msg = '</br>/help : Ce message </br>'
-            +'/ig : Nombre de joueurs en ligne </br>'
-            +'/w NICK : Message privé à [NICK]';
-        this.client_talk(msg);
-        };
-    this.cmd_ig = function()
-        {
-        C.ask_data('WLC');
-        };
-/*        
-    this.cmd_r = function(txt)
-        {
-        logMessage(this.last_whisp)
-        logMessage(txt)
-        var msg = txt.slice(1, txt.length);
+    // Display a client/system message in yellow
+    this.clientTalk = msg => that.receiveMsg('Client', msg, '#efcd25');
 
-        if (this.last_whisp=='') {return false;}
-        var json_obj = {'nick':this.last_whisp, 'msg':msg.join(' ') };    
-        C.ask_data('WHISP', json_obj);
-        };           
-*/        
-    this.cmd_w = function(txt)
-        {
-        var msg = txt.slice(2, txt.length);
-        var json_obj = {'nick':txt[1], 'msg':msg.join(' ') };    
-        C.ask_data('WHISP', json_obj);
-        };    
-    // --- SECRET ADMIN COMMAND ---    
-    this.cmd_iga = function() { C.ask_data('WLCA'); };
-    // this.cmd_list = function() { C.ask_data('WLST'); };  
+    // Chat command handlers
+    this.cmd_help = () => that.clientTalk(
+        `/help : This message\n` +
+        `/ig : Number of players online\n` +
+        `/w NICK : Private message to [NICK]`
+    );
+    this.cmd_ig = () => TC.ask_data('WLC');
+    this.cmd_w = args => {
+        const nick = args[1];
+        const msg = args.slice(2).join(' ');
+        TC.ask_data('WHISP', { nick, msg });
+    };
+    this.cmd_iga = () => TC.ask_data('WLCA'); // Admin secret command
 
-    // ---------------    
-    this.add_input = function(txt)
-        {
-        txt = $('#tchat_input').val()+txt ;
-        $('#tchat_input').val(txt);
-        $('#tchat_input').focus();
+    // Add text to chat input and focus it
+    this.addInput = txt => {
+        $('#tchat_input').val($('#tchat_input').val() + txt).focus();
+    };
 
-        // this.fade_to_visible();
-        };
-
-
-    // We can play with fade in fade out !
-    this.fade_to_visible = function(withtimer=true) {
-        // console.log('backvisible !')
+    // Fade chat window visible, then fade out after delay (default)
+    this.fadeToVisible = (withTimer = true) => {
         clearTimeout(this.fadeoutTimer);
-        $("#tchat").stop( true, true ).fadeTo(300, 1);
-        if (withtimer) {
-            this.fadeoutTimer = setTimeout(function(){
-                $("#tchat").stop( true, true ).fadeTo(15000, 0.1);    
+        $("#tchat").stop(true, true).fadeTo(300, 1);
+        if (withTimer) {
+            this.fadeoutTimer = setTimeout(() => {
+                $("#tchat").stop(true, true).fadeTo(15000, 0.1);
             }, 3000);
         }
     };
 
+    // Make chat window draggable and resizable within body
+    $("#tchat").resizable({ containment: "body" });
+    $("#tchat").draggable({ containment: "body" });
 
+    // UI event bindings
+    $("#tchat").mouseleave(() => that.fadeToVisible());
+    $("#tchat").mouseenter(() => that.fadeToVisible(false));
+    $("#tchat_input").focus(() => that.fadeToVisible());
 
-    // Moveable and resizable
-    $( "#tchat" ).resizable({containment:"body"});
-    $( "#tchat" ).draggable({containment:"body"});    
-    
-
-    // Evenement qui amene le tchat a s'effacer
-    $("#tchat").mouseleave(function(){ that.fade_to_visible(); });    
-    //  + une reception de message (Cf. fonction rcpt)
-
-    // Element qui ramene le tchat durablement
-    $("#tchat").mouseenter(function(){ that.fade_to_visible(false); });
-    $("#tchat_input").focus(function(){ that.fade_to_visible(); });
-    // + taper au clavier dans l'input (Cf keyup)
-
-
-
-    $('#tchat').on('click', '.nick', function(e)
-        {
-        // https://stackoverflow.com/questions/19393656/span-jquery-click-not-working/19393669
-        var nick = $(this).text();
-        $('#tchat_input').val('/w '+nick+' ');
-        $('#tchat_input').focus();
+    // Click nick to prepare private message
+    $('#tchat').on('click', '.nick', function () {
+        $('#tchat_input').val('/w ' + $(this).text() + ' ').focus();
         return false;
-        });
-    $('#tchat').on('click', '.coords', function(e)
-        {
-        // Magique ^^ Va là ou on a linké les coords :) :) :)    
-        var coords = $(this).text();
-        coords = coords.substring(1, coords.length-1);
-        var c_ary = coords.split(',');
-        var latlng = H.coord_to_pixel(H.coord(c_ary,'oddr'), H_W, H_H, H_S);
-        var latlng = [latlng[1],latlng[0]];
-        Mv.goto(latlng);
-        });
+    });
 
-    $('#tchat_input').keyup(function(e)
-        {
-        that.fade_to_visible();
+    // Click coords to move map view
+    $('#tchat').on('click', '.coords', function () {
+        const coords = $(this).text().slice(1, -1).split(',');
+        const latlng = H.coord_to_pixel(H.coord(coords, 'oddr'), H_W, H_H, H_S);
+        Mv.goto([latlng[1], latlng[0]]);
+    });
 
-        // Petit historique maison !    
-        if(e.keyCode === 38) {
-            that.curr_key--;    
-            if (that.curr_key<=0) {that.curr_key=0;}
-            $('#tchat_input').val(that.last[that.curr_key]);
+    // Input key handling: up/down history navigation and send on enter
+    $('#tchat_input').keyup(e => {
+        that.fadeToVisible();
+
+        if (e.key === 'ArrowUp') {
+            that.currKey = Math.max(0, that.currKey - 1);
+            $('#tchat_input').val(that.history[that.currKey] || '');
             return false;
         }
-        if(e.keyCode === 40) {
-            that.curr_key++;
-            if (that.curr_key>that.last.length) {that.curr_key=that.last.length;}
-            $('#tchat_input').val(that.last[that.curr_key]);
+        if (e.key === 'ArrowDown') {
+            that.currKey = Math.min(that.history.length, that.currKey + 1);
+            $('#tchat_input').val(that.history[that.currKey] || '');
             return false;
         }
 
-        // Push entree :    
-        if(e.keyCode === 13)
-            {
-
+        if (e.key === 'Enter') {
             const txt = $('#tchat_input').val();
-            if (txt.length<=0) {return false;}
-            that.last.push(txt);
-            that.curr_key = that.last.length;
+            if (!txt) return false;
 
-            // Detect Special commands :
-            if (txt[0]==='/')
-                {
-                var special_txt = txt.split(' ');
-                var cmd = special_txt[0];
-                var func_name = 'cmd_' + cmd.substring(1,cmd.length);
-                if (typeof that[func_name]==='function')
-                    {
-                    that[func_name](special_txt);    
-                    }
-                else 
-                    {
-                    that.client_talk('Commande inconnue. Utilisez /help pour avoir la liste des commandes valides.');
-                    }
+            that.history.push(txt);
+            that.currKey = that.history.length;
+
+            if (txt.startsWith('/')) {
+                const args = txt.split(' ');
+                const cmd = args[0].slice(1);
+                const func = that['cmd_' + cmd];
+                if (typeof func === 'function') {
+                    func(args);
+                } else {
+                    that.clientTalk('Unknown command. Use /help for valid commands.');
                 }
-            else 
-                {
-                // Classical txt :    
-                that.send($('#tchat_input').val());
-                }
-                
+            } else {
+                that.send(txt);
+            }
             $('#tchat_input').val('');
             return false;
-            }
-        
-    //    return false;
+        }
+    });
 
-            
-        });       
-        
-    this.send = function(msg) { C.ask_data('TCH', msg); };
+    // Send chat message via TC.ask_data WebSocket wrapper
+    this.send = msg => TC.ask_data('TCH', msg);
 
-    C.socket.on('TCH', function (data)  { that.rcpt_msg(data.name, data.msg, data.col); });        
-        
-        
-    }
+    // Listen to incoming chat messages from server
+    TC.socket.on('TCH', data => that.receiveMsg(data.name, data.msg, data.col));
+};
+
+const T = new Tchat();

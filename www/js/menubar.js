@@ -54,8 +54,9 @@ function Menubar() {
         	this.client_time = data.server_time; // Syncing clocks
     		this.lock = data.lock;
 			
-			// console.log('Fresh infos ! - Local Clock adjusted.');
-			// console.log('Info : T:'+this.last_turn+', mT:'+this.last_mtime+', nT:'+this.next_tic+', L:'+this.lock+', cT:'+this.client_time);
+			console.log('Fresh infos ! - Local Clock adjusted.');
+			console.log('Info : T:'+this.last_turn+', mT:'+this.last_mtime+', nT:'+this.next_tic+', L:'+this.lock+', cT:'+this.client_time);
+			Mv.server_rst();
 
     	}
     };
