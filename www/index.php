@@ -15,7 +15,9 @@ include_once __DIR__.'/includes/frontend_init.php';
         
         <!-- script src="https://code.jquery.com/jquery-3.6.0.js"></script -->
         <script src="./js/inc/jquery-3.6.0.min.js"></script>
-        <script src="https://code.jquery.com/ui/1.13.1/jquery-ui.js"></script>
+        <script src="./js/inc/jquery-ui-1.13.3.min.js"></script>
+        
+        <!-- script src="https://code.jquery.com/ui/1.13.1/jquery-ui.js"></script -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/seedrandom/2.3.10/seedrandom.min.js"></script>
 
         <!-- CSS -->
@@ -28,6 +30,7 @@ include_once __DIR__.'/includes/frontend_init.php';
         <!-- LEAFLET CSS & JS -->
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>  
+        <!-- script src="./js/inc/leaflet/leaflet.js"></script -->
 
         <!-- Fait Maison -->
         <!-- CSS -->
