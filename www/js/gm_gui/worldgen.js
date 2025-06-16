@@ -34,6 +34,7 @@ function Humidity() 	{ ajaxExecutor('Humidity'); }
 function LatitudeClimate() 	{ ajaxExecutor('LatitudeClimate'); }
 function Rivers() 	{ ajaxExecutor('Rivers'); }
 function DesertsCoasts() 	{ ajaxExecutor('DesertsCoasts'); }
+function LessBoring() 	{ ajaxExecutor('LessBoring'); }
 
 /* -----------------------------------------------------------------------------
 	Aja Call & Page Refresh

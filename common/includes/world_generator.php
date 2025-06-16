@@ -220,19 +220,12 @@ class WorldGenerator {
 	/* -------------------------------------------------------------------------
 	    Drawing Functions !!!!
 	------------------------------------------------------------------------- */
-
-
-
 	public function lineDrawer($test_mode, $terrain, $spotlines, $drawFunc, $size=3, $shift=0) {
-
-		
 
 		// $maxspl = count($spotlines);
 		logMessage('Drawing Lines ... ');
 
 		foreach($spotlines as $key => $spotline) {
-
-			
 
 			$n = count($spotline);
 			$mid = floor( $n / 2); // Position du milieu
@@ -360,6 +353,24 @@ class WorldGenerator {
 		}
 		return;
 	}
+
+
+	/* -------------------------------------------------------------------------
+		Manage Boring zone :
+			- Find places where there is only 1 type of lands in a radius of 
+			5 hexs
+			- Swap the central hex to something specific
+			- Retry start -> ends, stops if needed.
+
+	------------------------------------------------------------------------- */
+	public function LessBoring($load = true, $save = true) {
+		if ($load) {$this->loadWorld();}
+
+
+		// if ($save) {$this->saveWorld();}
+		return;
+	}
+
 
 
 	/* -------------------------------------------------------------------------
@@ -553,6 +564,8 @@ class WorldGenerator {
 		}
 		return $seeds;
 	}
+
+
 
 	/* -------------------------------------------------------------------------
 		Rivers !
