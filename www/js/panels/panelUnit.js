@@ -13,7 +13,9 @@ class PanelUnit {
 		return `<div>UNIT = ${this.id}</div>`;	
 	}
 	content() {
-		return `Nice Content`;	
+		let content = "Huge Content";
+		content += " " + JSON.stringify(this.data);
+		return content;
 	}
 	
 }
