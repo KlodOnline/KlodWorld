@@ -915,7 +915,7 @@ function Mapview(max_col, max_row, start_coord)
         };
 
     this.server_rst = function () {
-    	
+    	console.log('Server Reset');
         that.cache =  [];
         Se.serverRefresh();
         that.refresh();
