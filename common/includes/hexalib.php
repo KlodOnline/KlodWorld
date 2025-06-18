@@ -347,7 +347,37 @@ public function noisyline_draw_new($coord_a, $coord_b, $variation_strength = 1)
         $results = [$coord];
         for ($i=1; $i<=$radius; $i++) { $results = array_merge($results, $this->ring($coord, $i));}
         return $results;
-        }        
+        }
+	public function noisy_spiral($coord, $radius) 
+		{
+		$coord = $this->convert($coord, 'Oddr');
+		$done = [];
+		$result = [];
+		$originKey = "{$coord->col},{$coord->row}";
+		$done[$originKey] = true;
+		$result[] = $coord;
+		$frontier = [$coord];
+		for ($step = 0; $step < $radius; $step++) 
+			{
+			$newFrontier = [];
+			foreach ($frontier as $c) 
+				{
+				$ring = $this->ring($c, 1);
+				foreach ($ring as $n) 
+					{
+					$key = "{$n->col},{$n->row}";
+					if (isset($done[$key])) { continue; }
+					if (rand(0, 1) === 0) { continue; } // bruit : 50% de chance d'être inclus
+					$done[$key] = true;
+					$result[] = $n;
+					$newFrontier[] = $n;
+					}
+				}
+			$frontier = $newFrontier;
+			}
+		if (count($result) >= $radius) { return $result; }			
+		return $this->noisy_spiral($coord, $radius);
+		}
     // Arythmetics -------------------------------------------------------------
     public function lerp($a, $b, $t)
         {
