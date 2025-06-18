@@ -75,6 +75,8 @@ class WorldGenerator {
 		return $ground;
 	}
 
+
+
 	/* -------------------------------------------------------------------------
 	    Setting Grounds
 	------------------------------------------------------------------------- */
@@ -354,22 +356,37 @@ class WorldGenerator {
 	------------------------------------------------------------------------- */
 	public function LessBoring($load = true, $save = true) {
 		if ($load) {$this->loadWorld();}
-
 		// Considering possible boring as 1, 2, 3 (Ocean, Forest, Plains)
-		// Because "LessBoring" Happens after "Humidity" and before
-		// "LattitudeClimate"
-		$possibleBoring = [];
-
-		$this->board->forEachGround(function ($currCol, $currRow) {
+		// Because "LessBoring" Happens after "Humidity" and before "LattitudeClimate"
+		$possibleBoring = [1, 2, 8];
+		// 6 = small / 10 = medium
+		$radius = 10;
+		$this->board->forEachGround(function ($currCol, $currRow) use ($possibleBoring, $radius) {
 			$actualLand = $this->getGround($currCol, $currRow);
-
-			if ($actualLand->getGroundType()==10 or $actualLand->getGroundType()==17) {
-
+			$groundType = $actualLand->getGroundType();
+			if (in_array($groundType, $possibleBoring)) {
+				$center = $this->hexalib->coord([$currCol, $currRow], 'Oddr');
+				$coords = $this->hexalib->spiral($center, $radius);
+				$allSame = true;
+				foreach ($coords as $testCoord) {
+					$testCoord = $this->hexalib->convert($testCoord, 'Oddr');
+					$other = $this->getGround($testCoord->col, $testCoord->row);
+					// if ($other->getGroundType() != $groundType) {
+					if (!$other || $other->getGroundType() != $groundType) {	
+						$allSame = false;
+						break;
+					}
+				}
+				if ($allSame) {
+					// A splat
+					$splat_radius = rand((int)($radius/2), $radius*1.5);
+					$patch = $this->hexalib->noisy_spiral($center, $splat_radius);
+					$alternatives = array_filter($possibleBoring, fn($v) => $v !== $groundType);
+					if (!empty($alternatives)) { $replacement = $alternatives[array_rand($alternatives)]; }
+					foreach ($patch as $c) { $this->setGroundFromCoord($c, $replacement); }
+				}
 			}
-
-
 		});
-
 		if ($save) {$this->saveWorld();}
 		return;
 	}
