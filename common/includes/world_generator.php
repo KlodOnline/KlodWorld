@@ -58,6 +58,9 @@ class WorldGenerator {
     	$this->clearWorld(true, false);
     	$this->createTectonicPlates(false, false, null);
     	$this->Humidity(false, false);
+
+    	$this->LessBoring(false, false);
+
     	$this->LatitudeClimate(false, false);
     	$this->Rivers(false, false);
     	$this->DesertsCoasts(false, true);
@@ -113,7 +116,7 @@ class WorldGenerator {
 		if (!is_array($fromLands)) {$fromLands = [$fromLands];}
 		$target = $this->getGround($coord->col, $coord->row);
 		if ($target!=null) {
-			if (in_array($target->ground_type(), $fromLands)) {
+			if (in_array($target->getGroundType(), $fromLands)) {
 				$this->setGroundFromCoord($coord, $toLand);
 				return true;
 			}
@@ -168,15 +171,11 @@ class WorldGenerator {
 	/* -------------------------------------------------------------------------
 	    Clear the world (full plains)
 	------------------------------------------------------------------------- */
-	public function clearWorld($load = true, $save = true){
-
-		
+	public function clearWorld($load = true, $save = true) {
 
 		if ($load) {$this->loadWorld();}
 
 		logMessage('Loading : NB Grounds = '.$this->board->nbGrounds()) ;
-
-		
 
 		// En cas de monde vierge, il faut creer les grounds :
 	    for ($currRow = 0; $currRow < MAX_ROW; $currRow++) {
@@ -185,36 +184,20 @@ class WorldGenerator {
 	        }
 	    }
 
-	    
-
 	    logMessage('Setting Default : NB Grounds = '.$this->board->nbGrounds()) ;
-
-
-
 	    logMessage('Board Cleaning...');
 
 		// Ensuite il faut virer ce qui depasse :
-		/*
-		$this->board->forEachGroundObject(function ($object) {
-			if ($object->col<0 or $object->col>=MAX_COL or $object->row<0 or $object->row>=MAX_ROW) {
-				$this->board->deleteFromCollection($object);
-			}
-		});
-		*/
-
 		$this->board->forEachGround(function ($col, $row) {
 		    if ($col < 0 || $col >= MAX_COL || $row < 0 || $row >= MAX_ROW) {
 		        $this->board->deleteFromCollection(['col' => $col, 'row' => $row]); // Suppression basée sur les coordonnées
 		    }
 		});
 
-
 		logMessage('Erasing too much : NB Grounds = '.$this->board->nbGrounds()) ;
-
 		
 		if ($save) {$this->saveWorld();}
-
-		
+	
 	}
 
 	/* -------------------------------------------------------------------------
@@ -359,19 +342,37 @@ class WorldGenerator {
 		Manage Boring zone :
 			- Find places where there is only 1 type of lands in a radius of 
 			5 hexs
-			- Swap the central hex to something specific
+			- Swap the central hex to something specific with random "splat"
+	
+	Exemple :
+		- a splat of plain in forest & viceversa
+		- add mountains, and hill arounds
+		- generate a little moutain splat + river
+		- 
 			- Retry start -> ends, stops if needed.
 
 	------------------------------------------------------------------------- */
 	public function LessBoring($load = true, $save = true) {
 		if ($load) {$this->loadWorld();}
 
+		// Considering possible boring as 1, 2, 3 (Ocean, Forest, Plains)
+		// Because "LessBoring" Happens after "Humidity" and before
+		// "LattitudeClimate"
+		$possibleBoring = [];
 
-		// if ($save) {$this->saveWorld();}
+		$this->board->forEachGround(function ($currCol, $currRow) {
+			$actualLand = $this->getGround($currCol, $currRow);
+
+			if ($actualLand->getGroundType()==10 or $actualLand->getGroundType()==17) {
+
+			}
+
+
+		});
+
+		if ($save) {$this->saveWorld();}
 		return;
 	}
-
-
 
 	/* -------------------------------------------------------------------------
 		Desert, Coast, and various changes
@@ -390,13 +391,13 @@ class WorldGenerator {
 
 				// Drawing coasts - +2 from lands
 				if (count($this->board->getGroundNeighborOfTypes([1, 5], $coord->col, $coord->row, null, true))>0
-					and ($actualLand->ground_type()==1 or $actualLand->ground_type()==5)) {
+					and ($actualLand->getGroundType()==1 or $actualLand->getGroundType()==5)) {
 					$this->convertGroundSpiral($coord, 1, [1], 5);
 				}
 
 				// Drawing deserts / anything @$desert_factor from savanna borders
 				$desert_factor = 3;
-				if ($actualLand->ground_type()==10 or $actualLand->ground_type()==17) {
+				if ($actualLand->getGroundType()==10 or $actualLand->getGroundType()==17) {
 					// If nothing in a radius of X is something else than savana, can be a desert.
 					if (count($this->board->getGroundNeighborOfTypes([10, 17, 7, 19, 4], $coord->col, $coord->row, null, true, $desert_factor))<1) {
 						$this->convertGround($coord, [10], 7);	// 7
@@ -476,7 +477,7 @@ class WorldGenerator {
 		    $actualLand = $this->getGround($currCol, $currRow);
 
 
-		    if ($actualLand !== null && $actualLand->ground_type() == 1) { 
+		    if ($actualLand !== null && $actualLand->getGroundType() == 1) { 
 
 		        $direction = $this->windDirection($currCol, $currRow);
 		        if ($direction !== null) {
@@ -516,13 +517,13 @@ class WorldGenerator {
 						if ($coord->row<0 or $coord->row>MAX_ROW-1) {break;}
 						
 						$water = $water - 1;
-						if ($targetLand->ground_type()==4) { $water = $water - 9; }
-						if ($targetLand->ground_type()==3) { $water = $water - 4; }
+						if ($targetLand->getGroundType()==4) { $water = $water - 9; }
+						if ($targetLand->getGroundType()==3) { $water = $water - 4; }
 
-						if ($targetLand->ground_type()==1) { $water = $water + 5; }
+						if ($targetLand->getGroundType()==1) { $water = $water + 5; }
 						if ($water>$base_water) {$water=$base_water;}
 
-						if ($targetLand->ground_type()==8 or $targetLand->ground_type()==3) {
+						if ($targetLand->getGroundType()==8 or $targetLand->getGroundType()==3) {
 							$forests[] = $targetCoord;
 						}
 
@@ -582,10 +583,10 @@ class WorldGenerator {
 			$actualLand = $this->getGround($currCol, $currRow);
 			if (isset($actualLand)) {
 				// Depuis à côté d'une montagne, ou d'une colline humide
-				if ($actualLand->ground_type()==4 or $actualLand->ground_type()==15 or $actualLand->ground_type()==16) {
+				if ($actualLand->getGroundType()==4 or $actualLand->getGroundType()==15 or $actualLand->getGroundType()==16) {
 					$sources  = array_merge($sources, $this->board->getGroundNeighborOfTypes($riverables, $currCol, $currRow));
 				}
-				if ($actualLand->ground_type()==13) {
+				if ($actualLand->getGroundType()==13) {
 					$existingRivers[] = $actualLand;
 				}
 			}
@@ -807,7 +808,7 @@ class WorldGenerator {
 
 		    if ($actualLand !== null) {
 		    	// If is a Savanna
-		    	if ($actualLand->ground_type() == 10) {
+		    	if ($actualLand->getGroundType() == 10) {
 			        // Check Humdity neigbors
 			        $jungleNeighbors = $this->board->getGroundNeighborOfTypes([9,16], $currCol, $currRow);
 			        if (!empty($jungleNeighbors)) { 
@@ -823,7 +824,7 @@ class WorldGenerator {
 		    	}
 
 		    	//A forest can't be close to banquise...
-		    	if ($actualLand->ground_type() == 15 or $actualLand->ground_type() == 2) {
+		    	if ($actualLand->getGroundType() == 15 or $actualLand->getGroundType() == 2) {
 					// Check Banquise neigbors
 				    $banquiseNeighbors = $this->board->getGroundNeighborOfTypes([6,18], $currCol, $currRow);
 				    if (!empty($banquiseNeighbors)) { 
