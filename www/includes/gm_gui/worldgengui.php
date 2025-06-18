@@ -33,10 +33,12 @@ $ruleManager = new XMLObjectManager();
     <button onclick="clearWorld()">Clear</button>
     <button onclick="createTectonicPlates()">Tectonic Plates</button>
     <button onclick="Humidity()">Humidity</button>
+    
+    <button onclick="LessBoring()">Diminish Boredom</button>
+
     <button onclick="LatitudeClimate()">Climatic variations</button>
     <button onclick="Rivers()">Rivers</button>
     <button onclick="DesertsCoasts()">Deserts & Coasts</button>
-    <button onclick="LessBoring()">Diminish Boredom</button>
 
     <div id="progress-bar-container">
     	<div id="progress-bar"></div>
