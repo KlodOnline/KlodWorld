@@ -3,16 +3,12 @@
 
 Thanks for considering contributing to the project! To keep the codebase consistent and maintainable, please follow the guidelines below.
 
----
-
 ## General Guideline
 
 - This is not a democracy. This project reflects *my* vision of what an MMO-Strategy game should be. Anyone who shares this vision is welcome. Suggestions are appreciated, but the final word is mine. And so :
 - Any idea that would impact the gameplay ? Ask Tunkasina first.
 - English is the main language of the project to allow contributors from all over the world to participate.
 - Join the [Discord](https://discord.gg/UcyS3enr), and don't be an ass.
-
----
 
 ## Code Style Conventions
 
@@ -30,10 +26,6 @@ Thanks for considering contributing to the project! To keep the codebase consist
 - **File names**: `snake_case.php`  
   `world_engine.php`, `game_logic.php`
 
-- **Standards**: Follow [PSR-12](https://www.php-fig.org/psr/psr-12/) when possible.
-
----
-
 ### JavaScript (Front-end, client logic, UI)
 
 - **Everything**: `camelCase`  
@@ -45,8 +37,6 @@ Thanks for considering contributing to the project! To keep the codebase consist
 - **Modules**: Prefer ES6 syntax when possible  
   `export function updateWorldState() {}`
 
----
-
 ## Switching Between PHP and JS
 
 Keep in mind:
@@ -55,17 +45,12 @@ Keep in mind:
 | PHP      | `snake_case` | `CamelCase()`     | `CamelCase` | `snake_case.php` |
 | JavaScript | `camelCase` | `camelCase()`     | `CamelCase` (if needed) | `kebab-case.js` |
 
----
-
-
 ### SQL / Database
 
 - **Tables and fields**: `snake_case`  
   `player_data`, `world_settings`, `empire_id`
 
 - **Naming**: Keep lowercase, no plural tables unless logical (`players`, `cities`)
-
----
 
 ## Commit Messages
 
@@ -89,4 +74,3 @@ You can help yourself with [Angular convention](https://github.com/angular/angul
 - `perf`: Performance improvement
 - `test`: Adding or updating tests
 - `chore`: Maintenance, build tools, etc.
-
