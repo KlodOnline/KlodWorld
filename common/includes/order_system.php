@@ -612,7 +612,7 @@ class RecruitUnitOrder extends OrderRoot {
     }    
 
     public function action() {
-    	this->recruitUnit();
+    	$this->recruitUnit();
     }
 }
 
