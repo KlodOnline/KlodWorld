@@ -23,6 +23,10 @@ class City extends Locatable {
     public function getBuildings() { return (string) $this->getJsonData('buildings'); }
     public function getPopulation() { return (int) $this->getJsonData('population'); }
 
+    public function getFov() {
+    	return (int) ($this->getPopulation()/100);
+    }
+
     public function is_virtual() {
         if ( $this->col < 0 or $this->row < 0 ) { return true; }
         return false;

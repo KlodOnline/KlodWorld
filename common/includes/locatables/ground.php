@@ -61,6 +61,7 @@ class Ground extends Locatable {
 	// Getters for XML Rules
 	public function getLandTypeName() { return (string) $this->rulesValue('name'); }
 	public function getLandTypeMove() { return (int) $this->rulesValue('move'); }
+	public function getLandTypeFov() { return (int) $this->rulesValue('fov'); }
 
 /*	
 	public function getLandTypeMove() { return (int) $this->rulesValue('move'); }

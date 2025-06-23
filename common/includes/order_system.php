@@ -204,6 +204,9 @@ trait CanMove {
 	    // Mettre à jour l'état sur le board
 	    $this->board->updateCollection($actor);
 
+	    // Reveler le terrain de cet acteur
+	    $this->board->revealVisibleGrounds($actor)
+
 	    // Retirer la coordonnée consommée de $this->data
 	    $path = $this->path();
 	    array_shift($path); // Supprime le premier élément

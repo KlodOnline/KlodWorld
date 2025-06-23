@@ -74,6 +74,9 @@ class Unit extends Locatable {
 		return $orders;
 	}
 
+	// getFov breaks convention name for convenience in board->revealVisibleGrounds
+	public function getFov() { return (int) $this->rulesValue('fov'); }
+
 /*	
 	public function getUnitTypeName() { return (string) $this->rulesValue('name'); }
 	public function getUnitTypeName() { return (string) $this->rulesValue('name'); }

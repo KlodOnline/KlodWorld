@@ -197,6 +197,16 @@ class Board {
 	/***************************************************************************
 	    Finding in Collections ...
 	***************************************************************************/
+
+	public function forEachInCollection($objectClass, callable $callback) {
+		$collection = &$this->getCollectionByClass($objectClass);
+		if ($collection === null) {return;}
+		foreach($collection as $object) {	
+			if ($object===null) {continue;}
+			$callback($object);
+		}
+	}
+
 	public function getObjectsByCoords($class, $col, $row) {
 	    // Récupération de la collection
 	    $collection = &$this->getCollectionByClass($class);
@@ -642,6 +652,11 @@ class Board {
 		██╔══██║██║██║   ██║██╔══██║██║    ╚██╗ ██╔╝██║     
 		██║  ██║██║╚██████╔╝██║  ██║███████╗╚████╔╝ ███████╗
 		╚═╝  ╚═╝╚═╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝ ╚═══╝  ╚══════╝
+
+	High level means : any specialized functions that embed complex logic, that
+	you can use	as it to do something in the game (deleteUnit, revealVisibleGrounds,
+	etc)
+
 ========================================================================================*/
 
 	/*--------------------------------------------------------------------------
@@ -664,14 +679,6 @@ class Board {
 		return $token;
 	}
 
-	public function forEachInCollection($objectClass, callable $callback) {
-		$collection = &$this->getCollectionByClass($objectClass);
-		if ($collection === null) {return;}
-		foreach($collection as $object) {	
-			if ($object===null) {continue;}
-			$callback($object);
-		}
-	}
 
 	public function allAreClose($locatables) {
 	    // If not enough objects or only 1, return false, it's a kind of error?
@@ -851,6 +858,25 @@ class Board {
 	    return $neighbors;
 	}
 
+	public function revealVisibleGrounds($actor) {
+		// 2 things can "view" : unit & city
+		// fov is a native thing for unit, and depend of city size for city
+		// 	+ fov of the current ground
+		logMessage('Revealing visible ground !');
+
+		$ground = $this->getGround($actor->col, $actor->row);
+		$total_fov = $ground->getLandTypeFov() + $actor->getFov();
+		if ($total_fov<=0) {
+			logForce('<CRITICAL> FOV<=0 ?! I guess something is broken.');
+			return false;
+		}
+		$player = $this->findOwner($actor);
+
+		// Now we have a player, and a fov "radius", now we must modify known map
+		// of the player (adding $radius coords) and save this shit
+
+	}
+
 	/*--------------------------------------------------------------------------
 		Order
 	--------------------------------------------------------------------------*/
@@ -900,6 +926,7 @@ class Board {
 		$city->setJsonData('name', $name);
 		$city->setJsonData('population', 100);
 		$this->updateCollection($city);
+		$this->revealVisibleGrounds($city);
 	}
 
 	public function deleteCity($city_to_del, $city_to_relink = null) {
@@ -932,6 +959,7 @@ class Board {
 		$unit->setJsonData('city_id', $city_id);
 		$unit->setJsonData('name', $unit->getUnitTypeName());
 		$this->updateCollection($unit);
+		$this->revealVisibleGrounds($unit);
 	}
 
 
