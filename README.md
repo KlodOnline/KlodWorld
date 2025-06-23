@@ -1,11 +1,7 @@
 # KlodWorld
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/KlodOnline/KlodWorld)
 
-## General Policies
-
-- This is not a democracy. This project reflects *my* vision of what an MMO-Strategy game should be. Anyone who shares this vision is welcome. Suggestions are appreciated, but the final word is mine.
-- Please **read and follow** the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification. You can help yourself with [Angular convention](https://github.com/angular/angular/blob/22b96b9/CONTRIBUTING.md#-commit-message-guidelines) too.
-- English is the main language of the project to allow contributors from all over the world to participate.
+- For contribution guidelines, see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## To-Do List
 
