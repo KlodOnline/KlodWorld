@@ -360,7 +360,7 @@ class WorldGenerator {
 		// Because "LessBoring" Happens after "Humidity" and before "LattitudeClimate"
 		$possibleBoring = [1, 2, 8];
 		// 6 = small / 10 = medium
-		$radius = 10;
+		$radius = 6;
 		$this->board->forEachGround(function ($currCol, $currRow) use ($possibleBoring, $radius) {
 			$actualLand = $this->getGround($currCol, $currRow);
 			$groundType = $actualLand->getGroundType();
