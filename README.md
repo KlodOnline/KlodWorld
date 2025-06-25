@@ -2,7 +2,6 @@
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/KlodOnline/KlodWorld)
 
 - For contribution guidelines, see [CONTRIBUTING.md](./CONTRIBUTING.md).
-- [Come to Discord](https://discord.gg/UcyS3enr)
 
 ## To-Do List
 
