@@ -39,11 +39,21 @@ DB_NAME="klodonline"
 BATCH_SIZE="2000"
 
 # Ask personnlisation info
-read -p "  Choose a name for the world (name): " world_name
-read -p "  Enter columns number     (max_col): " max_col
-read -p "  Enter rows number        (max_row): " max_row
-read -p "  Choose demo mode      (true/false): " demo
-read -p "  TIC length in seconds        (TIC): " tic_sec
+ID=$(date +%s)
+read -p "  Choose a name for the world (name) [World_$ID]: " world_name
+world_name=${world_name:-"World_$ID"}
+
+read -p "  Enter columns number (max_col) [320]: " max_col
+max_col=${max_col:-320}
+
+read -p "  Enter rows number (max_row) [200]: " max_row
+max_row=${max_row:-200}
+
+read -p "  Choose demo mode (true/false) [false]: " demo
+demo=${demo:-false}
+
+read -p "  TIC length in seconds (TIC) [300]: " tic_sec
+tic_sec=${tic_sec:-300}
 
 # ================================================
 #   Requisites installation
