@@ -209,8 +209,7 @@ echo "apc.shm_segments = 1" >> "$PHP_INI"
 # ================================================
 
 cd $BASE_DIR/chat
-# npm audit fix --force
-# npm install --force
+npm install
 
 # Init Script Creation
 echo "#!/bin/sh
