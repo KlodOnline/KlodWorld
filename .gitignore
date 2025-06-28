@@ -1,2 +1,4 @@
 common/status.json
-**/node_modules/
+node_modules/
+common/param/config.ini
+package-lock.json
