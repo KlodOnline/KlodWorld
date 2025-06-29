@@ -14,8 +14,8 @@ let currentTrackIndex = 0;
 music.volume = 0.25;
 
 // Charge la playlist depuis le répertoire "soundtrack"
-const loadPlaylist = () => {
-	fetch('soundtrack/')
+function loadPlaylist() {
+	return fetch('soundtrack/')
 		.then(response => response.text())
 		.then(data => {
 			const parser = new DOMParser();
@@ -29,9 +29,6 @@ const loadPlaylist = () => {
 				}
 			});
 			logMessage('Playlist chargée avec ' + fullPlaylist.length + ' musiques.');
-			playRandomTrack();
-			music.pause();
-			toggleButton.textContent = 'Play Music';
 		})
 		.catch(error => {
 			logMessage('Erreur lors du chargement des musiques : ' + error);
@@ -53,13 +50,14 @@ const resetPlaylist = (ignoredSong="") => {
 
 // Fonction pour jouer une musique aléatoire
 const playRandomTrack = () => {
-	const randomIndex = Math.floor(Math.random() * playlist.length);
-	music.src = playlist[randomIndex];
-	logMessage(playlist[randomIndex]);
-	playlist.splice(randomIndex, 1);
 	if (playlist.length === 0) {
 		resetPlaylist();
 	}
+	const randomIndex = Math.floor(Math.random() * playlist.length);
+	music.src = playlist[randomIndex];
+	console.log(playlist);
+	logMessage(randomIndex);
+	playlist.splice(randomIndex, 1);
 
     logMessage(`Lecture de la musique : ${playlist[randomIndex]}`);
     music.play().catch((error) => {
@@ -101,4 +99,8 @@ toggleButton.addEventListener('click', () => {
 
 
 // Initialise la playlist avec toutes les soundtrack
-loadPlaylist();
+loadPlaylist().then(() => {
+	playRandomTrack();
+	music.pause();
+	toggleButton.textContent = 'Play Music';
+});
