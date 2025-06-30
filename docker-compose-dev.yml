@@ -37,17 +37,20 @@ services:
       - .:/app 
       - ./setup/apache.conf:/vhosts/klodworld.conf:ro
 
-  nodejs:
-    image: paketobuildpacks/nodejs:latest
-    container_name: klodworld-nodejs
+  node:
+    build:
+      context: ./chat
+    container_name: klodworld-node
     ports:
-      - "8080:2080"
+      - "2080:8080"
     volumes: 
-    - ./chat:/app 
+      - ./chat:/app 
+      - ./common:/common
     depends_on:
       - apache
     networks:
       - klodworld-net
+    command: "npm start"
 
 
 volumes:

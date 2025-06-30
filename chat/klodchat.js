@@ -41,6 +41,7 @@ const server = http.createServer();
 const io = new socketIo.Server(server, {
     cors: {
         origin: "https://" + CONFIG_INI['world']['world_ip'] + ":" + CONFIG_INI['world']['game_port'],
+        // origin: "*",
         methods: ["GET", "POST"],
         allowedHeaders: ["Content-Type", "Authorization"],
         credentials: true

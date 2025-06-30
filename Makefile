@@ -22,9 +22,9 @@ sh-php:
 
 sh-apache:
 	docker compose -f $(DEV-COMPOSE_FILE) exec apache bash
-	
+
 sh-db:
 	docker compose -f $(DEV-COMPOSE_FILE) exec db bash
 
 sh-nodejs:
-	docker compose -f $(DEV-COMPOSE_FILE) exec nodejs bash
+	docker compose -f $(DEV-COMPOSE_FILE) exec node bash
