@@ -1,0 +1,57 @@
+services:
+  db:
+    image: mariadb:latest
+    container_name: klodworld-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: klodonline
+      MYSQL_USER: klodadmin
+      MYSQL_PASSWORD: Pw3Lqb6fuLspT7IrYp
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./setup/worldserver.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - klodworld-net
+
+  php:
+    image: bitnami/php-fpm:latest
+    container_name: klodworld-php
+    volumes: 
+    - .:/app 
+    depends_on:
+      - db
+    networks:
+      - klodworld-net
+
+  apache:
+    image: bitnami/apache:latest
+    container_name: klodworld-apache
+    ports:
+      - "2443:8443"
+    depends_on:
+      - php
+    networks:
+      - klodworld-net
+    volumes:
+      - .:/app 
+      - ./setup/apache.conf:/vhosts/klodworld.conf:ro
+
+  nodejs:
+    image: paketobuildpacks/nodejs:latest
+    container_name: klodworld-nodejs
+    ports:
+      - "8080:2080"
+    volumes: 
+    - ./chat:/app 
+    depends_on:
+      - apache
+    networks:
+      - klodworld-net
+
+
+volumes:
+  db_data:
+
+networks:
+  klodworld-net:
