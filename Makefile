@@ -28,3 +28,6 @@ sh-db:
 
 sh-nodejs:
 	docker compose -f $(DEV-COMPOSE_FILE) exec node bash
+
+sh-game:
+	docker compose -f $(DEV-COMPOSE_FILE) exec game bash
