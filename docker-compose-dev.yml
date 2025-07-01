@@ -13,6 +13,12 @@ services:
       - ./setup/worldserver.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - klodworld-net
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -pPw3Lqb6fuLspT7IrYp || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 40s
 
   php:
     image: bitnami/php-fpm:latest
@@ -63,7 +69,8 @@ services:
       - ./game:/var/klodworld/game
       - ./common:/var/klodworld/common
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - klodworld-net
 
