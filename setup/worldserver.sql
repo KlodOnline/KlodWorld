@@ -1,5 +1,3 @@
-CREATE SCHEMA klodonline;
-
 CREATE TABLE klodonline.locatables ( 
     id                  INT  NOT NULL AUTO_INCREMENT PRIMARY KEY,
     col                 INT NOT NULL,
