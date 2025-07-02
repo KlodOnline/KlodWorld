@@ -13,7 +13,7 @@ This folder contains some of the scripts and tools needed to automate the instal
 
 Your server should now be accessible at: `https://127.0.0.1:2443`.
 
-⚠️You need to add your new Klodworld on the world list of KlodWeb to access it ! In KlodWeb folder, do :
+⚠️You need to add your new Klodworld on the world list of KlodWeb to access it ! In ***KlodWeb folder***, do :
    - `make sh-db`
    - `mariadb -p` (default password for dev env is `rootpass`)
    - `use klodwebsite;`
