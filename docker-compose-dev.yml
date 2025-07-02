@@ -40,21 +40,20 @@ services:
       - ./setup/apache.conf:/vhosts/klodworld.conf:ro
 
   node:
-    build:
-      context: .
-      dockerfile: chat/Dockerfile
+    image: node:current-alpine
     container_name: klodworld-node
     ports:
       - "2080:8080"
-    volumes: 
-      - ./chat:/app
-      - ./common:/common
+    working_dir: /home/node/app
+    volumes:
+      - ./chat:/home/node/app
+      - ./common:/home/node/common
     depends_on:
       - apache
     networks:
       - klodworld-net
     command: "npm start"
-    restart: always
+    # restart: always
 
   game:
     build:

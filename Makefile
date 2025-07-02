@@ -1,6 +1,7 @@
 DEV-COMPOSE_FILE=docker-compose-dev.yml
 
 up:
+	npm install --prefix ./chat
 	docker compose -f $(DEV-COMPOSE_FILE) up -d
 
 down:
@@ -26,7 +27,7 @@ sh-apache:
 sh-db:
 	docker compose -f $(DEV-COMPOSE_FILE) exec db bash
 
-sh-nodejs:
+sh-node:
 	docker compose -f $(DEV-COMPOSE_FILE) exec node bash
 
 sh-game:
