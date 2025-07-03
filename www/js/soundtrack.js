@@ -2,21 +2,62 @@
 const music = document.getElementById('background-music');
 const toggleButton = document.getElementById('toggle-music');
 
+allowLogs();
 
 // Liste des musiques dans le répertoire "soundtrack"
-const playlist = [
-	'soundtrack/03-Echoes_of_the_ancients.mp3',
-	'soundtrack/02-Eternal_Struggle.mp3',
-	'soundtrack/01-Eternal_Valor.mp3'
-];
+const fullPlaylist = [];
+
+// Liste de lecture
+let playlist = [];
 
 let currentTrackIndex = 0;
 music.volume = 0.25;
 
+// Charge la playlist depuis le répertoire "soundtrack"
+function loadPlaylist() {
+	return fetch('soundtrack/')
+		.then(response => response.text())
+		.then(data => {
+			const parser = new DOMParser();
+			const doc = parser.parseFromString(data, 'text/html');
+			const links = Array.from(doc.querySelectorAll('a'));
+			fullPlaylist.splice(0, fullPlaylist.length);
+			links.forEach(link => {
+				const href = link.getAttribute('href');
+				if (href && href.endsWith('.mp3')) {
+					fullPlaylist.push('soundtrack/' + href);
+				}
+			});
+			logMessage('Playlist chargée avec ' + fullPlaylist.length + ' musiques.');
+		})
+		.catch(error => {
+			logMessage('Erreur lors du chargement des musiques : ' + error);
+		});
+}
+
+// Réinitialise la playlist
+const resetPlaylist = (ignoredSong="") => {
+	if (fullPlaylist.length === 0) {
+		logMessage("Error : No soundtrack in the playlist")
+	}
+
+	fullPlaylist.forEach(soundtrack => {
+		if (soundtrack !== ignoredSong) {
+			playlist.push(soundtrack);
+		}
+	})
+}
+
 // Fonction pour jouer une musique aléatoire
 const playRandomTrack = () => {
+	if (playlist.length === 0) {
+		resetPlaylist();
+	}
 	const randomIndex = Math.floor(Math.random() * playlist.length);
 	music.src = playlist[randomIndex];
+	logMessage(randomIndex);
+	playlist.splice(randomIndex, 1);
+
     logMessage(`Lecture de la musique : ${playlist[randomIndex]}`);
     music.play().catch((error) => {
     	logForce("Erreur de lecture : ", error);
@@ -30,13 +71,6 @@ const playTrack = (index) => {
     	logForce("Erreur de lecture : ", error);
 	});
 };
-
-// Lecture automatique au chargement
-playRandomTrack();
-
-// et on met en pause ...
-music.pause();
-toggleButton.textContent = 'Play Music';
 
 // Passer à une musique aléatoire après un délai
 music.addEventListener('ended', () => {
@@ -59,4 +93,12 @@ toggleButton.addEventListener('click', () => {
     	music.pause();
         toggleButton.textContent = 'Play Music';
 	}
+});
+
+
+// Initialise la playlist avec toutes les soundtrack
+loadPlaylist().then(() => {
+	playRandomTrack();
+	music.pause();
+	toggleButton.textContent = 'Play Music';
 });
