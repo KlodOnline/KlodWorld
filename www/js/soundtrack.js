@@ -55,7 +55,6 @@ const playRandomTrack = () => {
 	}
 	const randomIndex = Math.floor(Math.random() * playlist.length);
 	music.src = playlist[randomIndex];
-	console.log(playlist);
 	logMessage(randomIndex);
 	playlist.splice(randomIndex, 1);
 
@@ -87,7 +86,6 @@ music.addEventListener('ended', () => {
 
 // Gérer le bouton de pause/lecture
 toggleButton.addEventListener('click', () => {
-	console.log(music)
 	if (music.paused) {
     	music.play();
         toggleButton.textContent = 'Stop Music';
