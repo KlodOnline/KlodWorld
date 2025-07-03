@@ -1,7 +1,7 @@
 DEV-COMPOSE_FILE=docker-compose-dev.yml
 
 up:
-	npm install --prefix ./chat
+	@npm install --prefix ./chat || exit 0
 	docker compose -f $(DEV-COMPOSE_FILE) up -d
 
 down:
@@ -32,3 +32,11 @@ sh-node:
 
 sh-game:
 	docker compose -f $(DEV-COMPOSE_FILE) exec game bash
+
+.PHONY: tools-build tools-lint
+
+tools-build:
+	docker build -t node-tools -f Dockerfile.tools .
+
+tools-lint:
+	docker run --rm -v $(PWD):/app/project -w /app/.tools node-tools npm run lint

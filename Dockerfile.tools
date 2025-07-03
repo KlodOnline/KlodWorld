@@ -1,0 +1,16 @@
+# Dockerfile.tools
+FROM node:20-alpine
+
+# Installer git pour husky
+RUN apk add --no-cache git
+
+WORKDIR /app/.tools
+
+# Copier package.json + config dans .tools
+COPY .tools .
+
+# Installer les dépendances dans .tools/node_modules
+RUN npm install
+
+# Le container ne lance rien par défaut, exec bash
+CMD ["sh"]
