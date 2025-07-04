@@ -1,4 +1,9 @@
 DEV-COMPOSE_FILE=docker-compose-dev.yml
+ifeq ($(OS),Windows_NT)
+PWD := $(shell powershell -Command "[System.IO.Directory]::GetCurrentDirectory()")
+else
+PWD := $(shell pwd)
+endif
 
 up:
 	docker compose -f $(DEV-COMPOSE_FILE) up -d
@@ -31,14 +36,6 @@ sh-node:
 
 sh-game:
 	docker compose -f $(DEV-COMPOSE_FILE) exec game bash
-
-.PHONY: tools-build tools-lint
-
-ifeq ($(OS),Windows_NT)
-PWD := $(shell powershell -Command "[System.IO.Directory]::GetCurrentDirectory()")
-else
-PWD := $(shell pwd)
-endif
 
 tools-build:
 	docker build --no-cache -t node-tools -f Dockerfile.tools .
