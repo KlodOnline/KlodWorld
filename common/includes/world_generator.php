@@ -358,10 +358,11 @@ class WorldGenerator {
 		if ($load) {$this->loadWorld();}
 		// Considering possible boring as 1, 2, 3 (Ocean, Forest, Plains)
 		// Because "LessBoring" Happens after "Humidity" and before "LattitudeClimate"
-		$possibleBoring = [1, 2, 8];
+		$possibleBoring = [1, 2, 4, 8];
+		$possibleReplacement = [1, 2, 3, 8, 11];
 		// 6 = small / 10 = medium
 		$radius = 6;
-		$this->board->forEachGround(function ($currCol, $currRow) use ($possibleBoring, $radius) {
+		$this->board->forEachGround(function ($currCol, $currRow) use ($possibleBoring, $radius, $possibleReplacement) {
 			$actualLand = $this->getGround($currCol, $currRow);
 			$groundType = $actualLand->getGroundType();
 			if (in_array($groundType, $possibleBoring)) {
@@ -382,16 +383,74 @@ class WorldGenerator {
 					$splat_radius = rand((int)($radius/2), $radius*1.5);
 					$patch = $this->hexalib->noisy_spiral($center, $splat_radius);
 
+					// $patch size allow some different lands
+					if (sizeof($patch)<=50) { $possibleReplacement = [3, 11]; }
+					if (sizeof($patch)>50) { $possibleReplacement = [1, 2, 8]; }
 					// Random with... But this is mayber an error. should have more land possible !
-					$alternatives = array_filter($possibleBoring, fn($v) => $v !== $groundType);
-					
-
+					$alternatives = array_filter($possibleReplacement, fn($v) => $v !== $groundType);
 					if (!empty($alternatives)) { $replacement = $alternatives[array_rand($alternatives)]; }
 
-					foreach ($patch as $c) { $this->setGroundFromCoord($c, $replacement); }
+					// c'est des collines ! (collines/plaines)
+					if ($replacement==3) {
+
+						foreach ($patch as $c) {
+							if (random_int(0, 2) < 2) {
+								$this->setGroundFromCoord($c, $replacement); 
+							} else {
+								$this->setGroundFromCoord($c, 8); 
+							}
+						}
+
+						// prevoir une montagne au milieu 4
+						$patch = $this->hexalib->noisy_spiral($center, $splat_radius/2);
+						foreach ($patch as $c) {
+							if (random_int(0, 1) === 1) {
+								$this->setGroundFromCoord($c, 4); 
+							}
+						}
+					}
+
+					// C'est de la foret !
+					if ($replacement==2) {
+						foreach ($patch as $c) {
+							if (random_int(0, 3) < 3) {
+								$this->setGroundFromCoord($c, $replacement); 
+							} else {
+								$this->setGroundFromCoord($c, 8); 
+							}
+						}
+						// prevoir des coline/foret au milieu 15
+						$patch = $this->hexalib->noisy_spiral($center, $splat_radius/2);
+						foreach ($patch as $c) { 
+							if (random_int(0, 1) === 1) {
+								$this->setGroundFromCoord($c, 15); 
+							}
+						}
+					}
+
+					// C'est des marecages !
+					if ($replacement==11) {
+						// Déja on fait pas toutes les cases
+						foreach ($patch as $c) { 
+							if (random_int(0, 2) < 1) {
+								$this->setGroundFromCoord($c, $replacement); 
+							} else {
+								$this->setGroundFromCoord($c, 8); 
+							}
+						}
+						// prevoir des foret au milieu 2
+						$patch = $this->hexalib->noisy_spiral($center, $splat_radius/2);
+						foreach ($patch as $c) { $this->setGroundFromCoord($c, 2); }
+					}
+
+					
 				}
 			}
 		});
+
+		// Ici, filtrer les oceans de moins de 80 cases => rien.
+
+
 		if ($save) {$this->saveWorld();}
 		return;
 	}
