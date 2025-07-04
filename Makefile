@@ -36,7 +36,10 @@ sh-game:
 .PHONY: tools-build tools-lint
 
 tools-build:
-	docker build -t node-tools -f Dockerfile.tools .
+	docker build --no-cache -t node-tools -f Dockerfile.tools .
 
-tools-lint:
-	docker run --rm -v $(PWD):/app/project -w /app/.tools node-tools npm run lint
+lint-www:
+	docker run --rm -v .:/app/project -w /app node-tools sh -c "npm run lint-www"
+
+lint-chat:
+	docker run --rm -v .:/app/project -w /app node-tools sh -c "npm run lint-chat"

@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "prepare": "husky install",
-    "lint": "eslint --config eslint.config.js ../project/www/js/",
-    "lint:fix": "eslint --config eslint.config.js ../project/www/js/ --fix",
+    "lint-www": "eslint --config eslint.config.js 'project/www/js/**/*.js'",
+    "lint-chat": "eslint --config eslint.config.js 'project/chat/**/*.js'",
+    "lint-www:fix": "eslint --config eslint.config.js 'project/www/**/*.js' --fix",
+    "lint-chat:fix": "eslint --config eslint.config.js 'project/chat/**/*.js' --fix",
     "commitlint": "commitlint --edit"
   },
   "devDependencies": {
