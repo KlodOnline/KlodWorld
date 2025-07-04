@@ -381,8 +381,13 @@ class WorldGenerator {
 					// A splat
 					$splat_radius = rand((int)($radius/2), $radius*1.5);
 					$patch = $this->hexalib->noisy_spiral($center, $splat_radius);
+
+					// Random with... But this is mayber an error. should have more land possible !
 					$alternatives = array_filter($possibleBoring, fn($v) => $v !== $groundType);
+					
+
 					if (!empty($alternatives)) { $replacement = $alternatives[array_rand($alternatives)]; }
+
 					foreach ($patch as $c) { $this->setGroundFromCoord($c, $replacement); }
 				}
 			}
