@@ -52,8 +52,7 @@ services:
       - apache
     networks:
       - klodworld-net
-    command: "npm start"
-    # restart: always
+    command: sh -c "npm install && npm start"
 
   game:
     build:

@@ -4,7 +4,6 @@ FROM php:latest
 RUN apt-get update && apt-get install -y \
     mariadb-client \
 	procps \
-	wait-for-it \
     && docker-php-ext-install mysqli \
 	&& docker-php-ext-install pcntl \
     && rm -rf /var/lib/apt/lists/*
