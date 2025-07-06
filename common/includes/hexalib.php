@@ -20,12 +20,12 @@ class Cube {
     public $z;
     public $type;
 	public function __construct($array) {	
-  	if (count($array)!==3) { print_r('Error : $incorrect $format.'); return false; }    
-    $this->type = 'cube';
-    $this->x = $array[0]*1;
-    $this->y = $array[1]*1;
-    $this->z = $array[2]*1;
-  }
+	  	if (count($array)!==3) { print_r('Error : $incorrect $format.'); return false; }    
+	    $this->type = 'cube';
+	    $this->x = $array[0]*1;
+	    $this->y = $array[1]*1;
+	    $this->z = $array[2]*1;
+  	}
   public function stg() { return $this->x.','.$this->y.','.$this->z; }
 }
 class Axial {
@@ -35,10 +35,10 @@ class Axial {
     public $type;
 	public function __construct($array) {		
 		if (count($array)!==2) { print_r('Error : $incorrect $format.'); return false; }    
-	  $this->type = 'axial';
-	  $this->q = $array[0]*1;
-	  $this->r = $array[1]*1;
-	  $this->s = -$this->q-$this->r;
+		$this->type = 'axial';
+		$this->q = $array[0]*1;
+		$this->r = $array[1]*1;
+		$this->s = -$this->q-$this->r;
 	}
 	public function stg() {return $this->q.','.$this->r.','.$this->s;}
 }    
@@ -48,9 +48,9 @@ class Oddr {
     public $type;
 	public function __construct($array) {		
 		if (count($array)!==2) { print_r('Error : $incorrect $format.'); return false; }    
-	  $this->type = 'oddr';
-	  $this->col = $array[0]*1;
-	  $this->row = $array[1]*1;
+		$this->type = 'oddr';
+		$this->col = $array[0]*1;
+		$this->row = $array[1]*1;
 	}
 	public function stg() {return $this->col.','.$this->row;}
 }
@@ -75,7 +75,7 @@ class Hexalib {
     public function coord($array, $format)
         {
         // Capitalize :
-        $coord_class = ucfirst($format);
+		$coord_class = ucfirst(strtolower($format));
         if ($coord_class==='Cube') {return new Cube($array);}
         if ($coord_class==='Axial') {return new Axial($array);}
         if ($coord_class==='Oddr') {return new Oddr($array);}
@@ -83,7 +83,8 @@ class Hexalib {
         }
     public function convert($coord, $cible)
         {
-        if (ucfirst($coord->type)===ucfirst($cible)) {return $coord;}
+		$type = (string) ($coord->type ?? '');
+	    if (strcasecmp($type, $cible) === 0) { return $coord; }
         $convert_func = $coord->type.'_to_'.$cible;    
         return $this->$convert_func($coord);
         }
@@ -162,30 +163,17 @@ class Hexalib {
             }
         return $results;
         }
-/*        
-    public function is_neighbour($coord_a, $coord_b)
-        {
-        // Test if $coord_a $is neighbour of $coord_b    
-        $neighb_a = $this->all_neighbours($coord_a);
-        for ($i=0; $i<count($neighb_a); $i++) 
-            {  if ($neighb_a[$i].col===$coord_b->col && $neighb_a[$i].row===$coord_b->row)
-                { return true; } }
-        return false;    
-        }
-*/
 	public function is_neighbour($coord_a, $coord_b)
 		{
-		    // Récupère tous les voisins de $coord_a
-		    $neighbours_a = $this->all_neighbours($coord_a);
-
-		    // Parcourt les voisins pour voir si $coord_b est parmi eux
-		    foreach ($neighbours_a as $neighbour) {
-		        if ($neighbour->col === $coord_b->col && $neighbour->row === $coord_b->row) {
-		            return true; // $coord_b est un voisin
-		        }
-		    }
-
-		    return false; // Aucun voisin ne correspond
+		// Récupère tous les voisins de $coord_a
+		$neighbours_a = $this->all_neighbours($coord_a);
+		// Parcourt les voisins pour voir si $coord_b est parmi eux
+		foreach ($neighbours_a as $neighbour) {
+			if ($neighbour->col === $coord_b->col && $neighbour->row === $coord_b->row) {
+		    	return true; // $coord_b est un voisin
+				}
+			}
+		return false; // Aucun voisin ne correspond
 		}
 
     public function common_neighbours($coord_a, $coord_b)
@@ -240,48 +228,44 @@ class Hexalib {
             }
         return $results;
         }
-
-
-public function noisyline_draw_new($coord_a, $coord_b, $variation_strength = 1)
-{
-    $that_sys = $coord_a->type;
-    $cube_a = $this->convert($coord_a, 'cube');
-    $cube_b = $this->convert($coord_b, 'cube');
-    $N = $this->distance($cube_a, $cube_b);
-
-    if ($N === 0) {
-        return [$this->convert($cube_a, $that_sys)];
-    }
-
-    $results = [];
-    $step_ratio = 1 / $N;
-
-    for ($i = 0; $i <= $N; $i++) {
-        // Interpolation
-        $interpolated = $this->cube_lerp($cube_a, $cube_b, $i * $step_ratio);
-
-        // Génération de l'offset aléatoire
-        $random_offset = new Cube([
-            'x' => random_int(-$variation_strength, $variation_strength),
-            'y' => random_int(-$variation_strength, $variation_strength),
-            'z' => 0 // Temporaire
-        ]);
-
-        // Ajustement pour respecter x + y + z = 0
-        $random_offset->z = -($random_offset->x + $random_offset->y);
-
-        // Application de l'offset et arrondi
-        $noisy_point = $this->cube_add($interpolated, $random_offset);
-        $cube_step = $this->cube_round($noisy_point);
-
-        // Conversion finale
-        $results[] = $this->convert($cube_step, $that_sys);
-    }
-
-    return $results;
-}
-
-
+	public function noisy_line($coord_a, $coord_b, int $depth = 2, float $amplitude = 1): array
+		{
+		// A line semi-random from a to b. depth is the number of recursive split
+		// (middle of lines taken) amplitude, the random allowed around
+	    $that_sys = $coord_a->type;
+	    $a = $this->convert($coord_a, 'cube');
+	    $b = $this->convert($coord_b, 'cube');
+	    // Obtenir la série de points bruités en cube
+	    $controlPoints = $this->recursive_noisy_line($a, $b, $depth, $amplitude);
+	    // Relier les points 2 à 2 avec line_draw()
+	    $result = [];
+	    $count = count($controlPoints);
+	    for ($i = 0; $i < $count - 1; $i++) {
+	        $segment = $this->line_draw($controlPoints[$i], $controlPoints[$i + 1]);
+	        array_pop($segment); // Évite la duplication du point suivant
+	        $result = array_merge($result, $segment);
+	    }
+	    // Ajouter le dernier point
+	    $result[] = $this->convert($controlPoints[$count - 1], $that_sys);
+	    return $result;
+		}
+	private function recursive_noisy_line($a, $b, int $depth, float $amplitude): array
+		{
+	    if ($depth === 0) { return [$a, $b]; }
+	    // Midpoint simple
+	    $mid = $this->cube_lerp($a, $b, 0.5);
+	    // Ajout de bruit aléatoire : décalage sur x/y/z
+	    $mid->x += rand(-100, 100) / 100 * $amplitude;
+	    $mid->y += rand(-100, 100) / 100 * $amplitude;
+	    $mid->z = -$mid->x - $mid->y; // Contrôle : x+y+z = 0
+	    $mid = $this->cube_round($mid);
+	    // Appel récursif sur A→M et M→B
+	    $first_half = $this->recursive_noisy_line($a, $mid, $depth - 1, $amplitude / 2);
+	    $second_half = $this->recursive_noisy_line($mid, $b, $depth - 1, $amplitude / 2);
+	    // Fusion sans dupliquer le point milieu
+	    array_pop($first_half);
+	    return array_merge($first_half, $second_half);
+		}
 
 	public function noisyline_draw($coord_a, $coord_b, $variation_strength = 1)
 		{
@@ -331,7 +315,7 @@ public function noisyline_draw_new($coord_a, $coord_b, $variation_strength = 1)
         $center = $this->convert($coord, 'cube');
         // Let's Ring !
         $results = [];
-        // $this code doesn't work for $radius = 0; can you see why?
+        // This code doesn't work for $radius = 0; can you see why?
         $cube_step = $this->cube_scale($center, $this->cube_directions[4], $radius);
         array_push($results, $this->convert($cube_step, $that_sys));
         for ($i=0; $i<=5; $i++) { for ($j=0; $j<$radius; $j++)
@@ -348,36 +332,53 @@ public function noisyline_draw_new($coord_a, $coord_b, $variation_strength = 1)
         for ($i=1; $i<=$radius; $i++) { $results = array_merge($results, $this->ring($coord, $i));}
         return $results;
         }
-	public function noisy_spiral($coord, $radius) 
-		{
-		$coord = $this->convert($coord, 'Oddr');
-		$done = [];
-		$result = [];
-		$originKey = "{$coord->col},{$coord->row}";
-		$done[$originKey] = true;
-		$result[] = $coord;
-		$frontier = [$coord];
-		for ($step = 0; $step < $radius; $step++) 
-			{
-			$newFrontier = [];
-			foreach ($frontier as $c) 
-				{
-				$ring = $this->ring($c, 1);
-				foreach ($ring as $n) 
-					{
-					$key = "{$n->col},{$n->row}";
-					if (isset($done[$key])) { continue; }
-					if (rand(0, 1) === 0) { continue; } // bruit : 50% de chance d'être inclus
-					$done[$key] = true;
-					$result[] = $n;
-					$newFrontier[] = $n;
-					}
-				}
-			$frontier = $newFrontier;
-			}
-		if (count($result) >= $radius) { return $result; }			
-		return $this->noisy_spiral($coord, $radius);
-		}
+
+public function noisy_spiral($coord, $radius) 
+{
+    $coord = $this->convert($coord, 'Oddr');
+    $done = [];
+    $result = [];
+    $originKey = "{$coord->col},{$coord->row}";
+    $done[$originKey] = true;
+    $result[] = $coord; // Centre toujours inclus
+    
+    if ($radius <= 0) return $result;
+    
+    $frontier = [$coord];
+    $baseProbability = 80; // pct Probabilité de base pour le 1er anneau
+    
+    for ($step = 1; $step <= $radius; $step++) 
+    {
+        $newFrontier = [];
+        // Probabilité qui décroît avec la distance
+        // $currentProb = $baseProbability * (1 - ($step / $radius));
+
+        $currentProb = 100 - round($step * $baseProbability / $radius);
+        
+        foreach ($frontier as $c) 
+        {
+            $ring = $this->ring($c, 1);
+            foreach ($ring as $n) 
+            {
+                $key = "{$n->col},{$n->row}";
+                if (isset($done[$key])) continue;
+                
+                // Pour le centre, on a déjà inclus, pour les autres on teste
+                if ((rand(0, 100) > $currentProb)) continue;
+                
+                $done[$key] = true;
+                $result[] = $n;
+                $newFrontier[] = $n;
+            }
+        }
+        
+        $frontier = $newFrontier;
+        if (empty($frontier)) break;
+    }
+    
+    return $result;
+}
+
     // Arythmetics -------------------------------------------------------------
     public function lerp($a, $b, $t)
         {

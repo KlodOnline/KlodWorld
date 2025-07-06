@@ -79,6 +79,7 @@ class Board {
 		}
 		return $this->{$collectionName};
 	}
+	
 	// Check what is in collections
 	public function statusOfCollections() {
 		global $LOG_LEVEL;

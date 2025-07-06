@@ -54,6 +54,36 @@ function convert_to_int($value) {
     }
     return null;
 }
+//------------------- TO PU IN HEXALIB
+function uniqueCoords(array $coords): array {
+	$uniqueMap = [];
+	foreach ($coords as $coord) {
+        $key = $coord->stg();
+        $uniqueMap[$key] = $coord;
+    }
+	return array_values($uniqueMap);
+}
+
+// Workdnly with Heaxalib Cube Coode
+function coordsIntersect(array $list1, array $list2): bool {
+    foreach ($list1 as $c1) {
+        foreach ($list2 as $c2) {
+            if ($c1->col === $c2->col && $c1->row === $c2->row) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+//-------------------
+
+function randomAround(float $base, float $percent = 0.2): int {
+    $min = (int) round((1 - $percent) * $base);
+    $max = (int) round((1 + $percent) * $base);
+    return (int) round(mt_rand($min, $max));
+}
+
+
 
 function magicCylinder($col) {
     // Far East
