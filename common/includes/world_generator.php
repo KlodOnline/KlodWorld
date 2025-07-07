@@ -283,22 +283,12 @@ class WorldGenerator {
 	    );
 	}
 
-
-// =============================================================================
-//
-//		AFTER HERE, HAVE TO REFACTORISE
-//
-// =============================================================================
-
 	/* -------------------------------------------------------------------------
 		Desert, Coast, and various changes
-
 	------------------------------------------------------------------------- */
 	public function DesertsCoasts($load = true, $save = true) {
 		if ($load) {$this->loadWorld();}
-
 		$this->updateCoastlines();
-
 		$this->board->forEachGround(function ($currCol, $currRow) {
 			$actual_ground = $this->getGround($currCol, $currRow);
 			if (isset($actual_ground)) {
@@ -318,35 +308,31 @@ class WorldGenerator {
 						$this->convertGround($coord, [$this->land['savanaHill']], $this->land['desertHill']);
 					}
 				}
-
 			}
 		});
-
 		if ($save) {$this->saveWorld();}
 		return;
 	}
-
-public function updateCoastlines(): void {
-    $oceanTypes = [$this->land['ocean']];
-    $water_types = [$this->land['ocean'], $this->land['coast']];
-    $coastType = $this->land['coast'];
-
-    $this->board->forEachGround(function ($col, $row) use ($oceanTypes, $water_types, $coastType) {
-        $ground = $this->getGround($col, $row);
-
-        // not ocean ? Exit.
-        if (!$ground || !in_array($ground->getGroundType(), $oceanTypes, true)) { return; }
-        // coast ? Exit
-        // if ($ground->getGroundType() === $coastType) { return; }
-
-        if ($this->board->hasNeighborOfTypes($col, $row, $water_types, null, true, 2)) {
-        	$this->setGround($col, $row, $coastType);
-        }
-
-    });
-}
+	public function updateCoastlines(): void {
+	    $oceanTypes = [$this->land['ocean']];
+	    $water_types = [$this->land['ocean'], $this->land['coast']];
+	    $coastType = $this->land['coast'];
+	    $this->board->forEachGround(function ($col, $row) use ($oceanTypes, $water_types, $coastType) {
+	        $ground = $this->getGround($col, $row);
+	        // not ocean ? Exit.
+	        if (!$ground || !in_array($ground->getGroundType(), $oceanTypes, true)) { return; }
+	        if ($this->board->hasNeighborOfTypes($col, $row, $water_types, null, true, 2)) {
+	        	$this->setGround($col, $row, $coastType);
+	        }
+	    });
+	}
 
 
+// =============================================================================
+//
+//		AFTER HERE, HAVE TO REFACTORISE
+//
+// =============================================================================
 
 
 	/* -------------------------------------------------------------------------
