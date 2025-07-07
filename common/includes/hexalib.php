@@ -1,7 +1,7 @@
 <?php
 /*==============================================================================
-    HEXALIB v1.1.0
-    last modified : 09-DEC-2024
+    HEXALIB v1.2.0
+    last modified : 07-JUL-2025
         Personnal $implementation of hexagonal grid management.
         Big thanks to :
             https://www.redblobgames.com/grids/hexagons/
@@ -12,236 +12,306 @@
 ==============================================================================*/
 /*------------------------------------------------------------------------------
     Objects for differents $coordinates systems :
-    ( *1 => miss type preventing)
  -----------------------------------------------------------------------------*/
-class Cube {
-    public $x;
-    public $y;
-    public $z;
-    public $type;
-	public function __construct($array) {	
-	  	if (count($array)!==3) { print_r('Error : $incorrect $format.'); return false; }    
-	    $this->type = 'cube';
-	    $this->x = $array[0]*1;
-	    $this->y = $array[1]*1;
-	    $this->z = $array[2]*1;
-  	}
-  public function stg() { return $this->x.','.$this->y.','.$this->z; }
+abstract class HexCoordinate {
+    public string $type;
+    abstract public function toString(): string;    
+    protected function validateInput(array $input, int $expected_length): void {
+        if (count($input) !== $expected_length) {
+            throw new InvalidArgumentException("Format error. Need $expected_length coords.");
+        }
+        foreach ($input as $value) {
+            if (!is_numeric($value)) {
+                throw new InvalidArgumentException("Coords must be numeric.");
+            }
+        }
+    }
 }
-class Axial {
-    public $q;
-    public $r;
-    public $s;
-    public $type;
-	public function __construct($array) {		
-		if (count($array)!==2) { print_r('Error : $incorrect $format.'); return false; }    
-		$this->type = 'axial';
-		$this->q = $array[0]*1;
-		$this->r = $array[1]*1;
-		$this->s = -$this->q-$this->r;
-	}
-	public function stg() {return $this->q.','.$this->r.','.$this->s;}
-}    
-class Oddr {
-    public $col;
-    public $row;
-    public $type;
-	public function __construct($array) {		
-		if (count($array)!==2) { print_r('Error : $incorrect $format.'); return false; }    
-		$this->type = 'oddr';
-		$this->col = $array[0]*1;
-		$this->row = $array[1]*1;
-	}
-	public function stg() {return $this->col.','.$this->row;}
+class Cube extends HexCoordinate {
+    public float $x;
+    public float $y; 
+    public float $z;    
+    public function __construct(array $coords) {
+        $this->validateInput($coords, 3);
+        $this->type = 'cube';
+        $this->x = (float)$coords[0];
+        $this->y = (float)$coords[1];
+        $this->z = (float)$coords[2];        
+        // if ($this->x + $this->y + $this->z !== 0) { throw new InvalidArgumentException("Cube coords must sum to 0."); }
+    }    
+    public function toString(): string { return "$this->x,$this->y,$this->z"; }
+}
+class Axial extends HexCoordinate {
+    public int $q;
+    public int $r;
+    public int $s;    
+    public function __construct(array $coords) {
+        $this->validateInput($coords, 2);
+        $this->type = 'axial';
+        $this->q = (int)$coords[0];
+        $this->r = (int)$coords[1];
+        $this->s = -$this->q - $this->r;
+    }
+    public function toString(): string { return "$this->q,$this->r,$this->s"; }
+}
+class Oddr extends HexCoordinate {
+    public int $col;
+    public int $row;
+    public function __construct(array $coords) {
+        $this->validateInput($coords, 2);
+        $this->type = 'oddr';
+        $this->col = (int)$coords[0];
+        $this->row = (int)$coords[1];
+    }
+    public function toString(): string { return "$this->col,$this->row"; }
 }
 
 /*------------------------------------------------------------------------------
     Ze Library :
  -----------------------------------------------------------------------------*/
 class Hexalib {
-
-	private $cube_directions;
-
-	public function __construct() {
-		// Precalculate $coords
-    	$this->cube_directions = [
-	    	new Cube([+1, -1, 0]), new Cube([+1, 0, -1]),
-        	new Cube([0, +1, -1]), new Cube([-1, +1, 0]),
-        	new Cube([-1, 0, +1]), new Cube([0, -1, +1])
-        ];
+    private const CUBE_DIRECTIONS = [
+        [1, -1, 0], [1, 0, -1],
+        [0, 1, -1], [-1, 1, 0],
+        [-1, 0, 1], [0, -1, 1]
+    ];
+    private array $cube_directions = [];
+    public function __construct() { $this->initializeCubeDirections(); }
+    // Private Methods ---------------------------------------------------------
+	private function initializeCubeDirections(): void {
+	    if (empty($this->cube_directions)) {
+	        $this->cube_directions = array_map( fn($dir) => new Cube($dir), self::CUBE_DIRECTIONS );
+	    }
+	}
+	private function getConversionMethodName(string $source_format, string $target_format): string {
+	    return "from{$source_format}To{$target_format}";
+	}
+	public function coordsEqual(HexCoordinate $a, HexCoordinate $b): bool {
+	    $cube_a = $this->convert($a, 'cube');
+	    $cube_b = $this->convert($b, 'cube');
+	    return $cube_a->toString() === $cube_b->toString();
 	}
 
-    // $coordinate Manipulation -------------------------------------------------
-    public function coord($array, $format)
-        {
-        // Capitalize :
-		$coord_class = ucfirst(strtolower($format));
-        if ($coord_class==='Cube') {return new Cube($array);}
-        if ($coord_class==='Axial') {return new Axial($array);}
-        if ($coord_class==='Oddr') {return new Oddr($array);}
-        return false;
-        }
-    public function convert($coord, $cible)
-        {
-		$type = (string) ($coord->type ?? '');
-	    if (strcasecmp($type, $cible) === 0) { return $coord; }
-        $convert_func = $coord->type.'_to_'.$cible;    
-        return $this->$convert_func($coord);
-        }
-    public function distance($coord_a, $coord_b)
-        {
-        // Working with easiest $coordinate system :
-        $cube_a = $this->convert($coord_a, 'cube');
-        $cube_b = $this->convert($coord_b, 'cube');
-        return $this->cube_distance($cube_a, $cube_b);
-        }
-    public function closest($array, $target)
-        {
-        $best_distance = INF;
-        $best_coord = null;
-	    foreach ($array as $coord) {
+    // Coordinate System Manipulation ------------------------------------------
+	public function coord(array $coords, string $format): HexCoordinate {
+		// Create a coordinate
+	    $format = strtolower($format);
+	    return match($format) {
+	        'cube' => new Cube($coords),
+	        'axial' => new Axial($coords),
+	        'oddr' => new Oddr($coords),
+	        default => throw new InvalidArgumentException("Invalid format: $format. Use cube/axial/oddr")
+	    };
+	}
+	public function convert(HexCoordinate $coord, string $target_format): HexCoordinate {
+	    $source = ucfirst(strtolower($coord->type));
+	    $target = ucfirst(strtolower($target_format));
+	    if ($source === $target) return $coord;
+	    $method = "from{$source}To{$target}";
+	    return $this->{$method}($coord) 
+	        ?? throw new BadMethodCallException("Conversion {$source}→{$target} impossible");
+	}
+	public function fromCubeToAxial(Cube $cube): Axial {
+	    return new Axial([$cube->x, $cube->z]);
+	}
+	public function fromAxialToCube(Axial $axial): Cube {
+	    return new Cube([$axial->q, $axial->s, $axial->r]);
+	}
+	public function fromCubeToOddr(Cube $cube): Oddr {
+	    $col = $cube->x + ($cube->z - ($cube->z & 1)) / 2;
+	    $row = $cube->z;
+	    return new Oddr([$col, $row]);
+	}
+	public function fromOddrToCube(Oddr $oddr): Cube {
+	    $x = $oddr->col - ($oddr->row - ($oddr->row & 1)) / 2;
+	    $z = $oddr->row;
+	    $y = -$x - $z;
+	    return new Cube([$x, $y, $z]);
+	}
+	public function fromOddrToAxial(Oddr $oddr): Axial {
+	    return $this->fromCubeToAxial($this->fromOddrToCube($oddr));
+	}
+	public function fromAxialToOddr(Axial $axial): Oddr {
+	    return $this->fromCubeToOddr($this->fromAxialToCube($axial));
+	}
+	public function pixelToHex(array $pixel_coords, string $target_format, float $width, float $size): HexCoordinate {
+	    // Convert pixel coordinates to hex coordinates
+	    // width = container width, size = hex size
+	    $x = (float)$pixel_coords[0];
+	    $y = (float)$pixel_coords[1];
+	    // Algorithm from Red Blob Games:
+	    // https://www.redblobgames.com/grids/hexagons/#comment-1063818420
+	    $x = ($x - $width / 2) / $width;
+	    $temp1 = $y / $size;
+	    $temp2 = floor($x + $temp1);
+	    $r = floor((floor($temp1 - $x) + $temp2) / 3);
+	    $q = floor((floor((2 * $x) + 1) + $temp2) / 3) - $r;
+	    // q and r are in axial coordinates - convert before returning
+	    $axial_coord = $this->createCoordinate([$q, $r], 'axial');
+	    return $this->convert($axial_coord, $target_format);
+	}
+	public function hexToPixel(HexCoordinate $hex_coord, float $width, float $height, float $size): array {
+	    // Convert hex coordinates to pixel coordinates (center of hex)
+	    // width = container width, height = container height, size = hex size
+	    $oddr_coord = $this->convert($hex_coord, 'oddr');
+	    // Convert from offset coordinates to pixel position
+	    $x = $size * sqrt(3) * ($oddr_coord->col + 0.5 * ($oddr_coord->row & 1));
+	    $y = $size * 3/2 * $oddr_coord->row;
+	    // Center in container
+	    $x += $width / 2;
+	    $y += $height / 2;
+	    return [$x, $y];
+	}
+
+	// Mathematical function ---------------------------------------------------
+	public function cubeDistance(Cube $a, Cube $b): int {
+    	return (int) ((abs($a->x - $b->x) + abs($a->y - $b->y) + abs($a->z - $b->z)) / 2);
+    }
+	public function distance($coord_a, $coord_b): int {
+	    $cube_a = $this->convert($coord_a, 'cube');
+	    $cube_b = $this->convert($coord_b, 'cube');
+	    return $this->cubeDistance($cube_a, $cube_b);
+	}
+	public function closest(array $coords, $target): ?object {
+	    $bestDist = PHP_INT_MAX;
+	    $bestCoord = null;
+	    foreach ($coords as $coord) {
 	        $dist = $this->distance($coord, $target);
-	        if ($dist < $best_distance) {
-	            $best_distance = $dist;
+	        if ($dist < $bestDist) {
+	            $best_dist = $dist;
 	            $best_coord = $coord;
 	        }
 	    }
-        return $best_coord;
-        }
-    public function pixel_to($array, $target, $w, $s)
-        {
-        // Find hex $coord according to pixel $coords
-        // w = WIDTH; $s = SIZE
-        $x = $array[0]*1; $y = $array[1]*1;
-        // Magical code from : (kiss & love)
-        // https://www.redblobgames.com/grids/hexagons/#comment-1063818420
-        $x = ($x - $w/2) / $w;
-        $temp1 = $y / $s;
-        $temp2 = floor($x + $temp1);
-        $r = floor((floor($temp1 - $x) + $temp2) / 3);
-        $q = floor((floor((2 * $x) + 1) + $temp2) / 3) - $r;
-        // r & q sont en $coordonnées "Axiales" - On converti avant return :
-        return $this->convert($this->coord([$q, $r],'axial'), $target);
-        }
-    public function coord_to_pixel($coord, $w, $h, $s)
-        {
-        // Find pixel according to $coord (center of hex)
-        // w = WIDTH; $s = SIZE
-        $coord = $this->convert($coord, 'oddr');
-        // From Offset $coords :
-        $x = $s * sqrt(3) * ($coord->col + 0.5 * ($coord->row&1));
-        $y = $s * 3/2 * $coord->row;
-        $x=$x+$w/2;
-        $y=$y+$h/2;
-        return [$x, $y];
-        }
-    // Neighborhood ------------------------------------------------------------
-    public function neighbour($coord, $i)
-        {
-        // Finding current $coordinate system :
-        $that_sys = $coord->type;
-        // Working with easiest $coordinate system :
-        $cube = $this->convert($coord, 'cube');
-        // Then, find $this neighbour :
-        $neighbour = $this->cube_add($cube, $this->cube_directions[$i]);
-        // Convert back & return :
-        return $this->convert($neighbour, $that_sys);
-        }
-    public function all_neighbours($coord)
-        {
-        // Finding current $coordinate system :
-        $that_sys = $coord->type;
-        // Working with easiest $coordinate system :
-        $cube = $this->convert($coord, 'cube');
-        // Then, find those neighbour :
-        $results = [];
-        for ($i=0; $i<=5; $i++)
-            {
-            $neighbour = $this->cube_add($cube, $this->cube_directions[$i]);
-            // Convert it back, and push in results array:
-            $results[]=($this->convert($neighbour, $that_sys));
-            }
-        return $results;
-        }
-	public function is_neighbour($coord_a, $coord_b)
-		{
-		// Récupère tous les voisins de $coord_a
-		$neighbours_a = $this->all_neighbours($coord_a);
-		// Parcourt les voisins pour voir si $coord_b est parmi eux
-		foreach ($neighbours_a as $neighbour) {
-			if ($neighbour->col === $coord_b->col && $neighbour->row === $coord_b->row) {
-		    	return true; // $coord_b est un voisin
-				}
-			}
-		return false; // Aucun voisin ne correspond
-		}
+	    return $best_coord;
+	}
+	public function lerp(float $a, float $b, float $t): float  {
+	    return $a * (1 - $t) + $b * $t;
+	}
+	public function cubeScale(Cube $origin, Cube $direction, int $distance): Cube {
+	    return new Cube([
+	        $origin->x + $direction->x * $distance,
+	        $origin->y + $direction->y * $distance,
+	        $origin->z + $direction->z * $distance
+	    ]);
+	}
+	public function cubeLerp(Cube $a, Cube $b, float $t): Cube {
+	    return new Cube([
+	        $this->lerp($a->x, $b->x, $t),
+	        $this->lerp($a->y, $b->y, $t),
+	        $this->lerp($a->z, $b->z, $t)
+	    ]);
+	}
+	public function cubeRound(Cube $cube): Cube {
+	    $rx = round($cube->x);
+	    $ry = round($cube->y);
+	    $rz = round($cube->z);
+	    $x_diff = abs($rx - $cube->x);
+	    $y_diff = abs($ry - $cube->y);
+	    $z_diff = abs($rz - $cube->z);
+	    if ($x_diff > $y_diff && $x_diff > $z_diff) { $rx = -$ry - $rz; }
+	    elseif ($y_diff > $z_diff) { $ry = -$rx - $rz; }
+	    else { $rz = -$rx - $ry; }
+	    return new Cube([$rx, $ry, $rz]);
+	}
+	public function cubeAdd(Cube $a, Cube $b): Cube {
+	    return new Cube([
+	        $a->x + $b->x,
+	        $a->y + $b->y,
+	        $a->z + $b->z
+	    ]);
+	}
+	public function cubeSubstract(Cube $a, Cube $b): Cube {
+	    return new Cube([
+	        $a->x - $b->x,
+	        $a->y - $b->y,
+	        $a->z - $b->z
+	    ]);
+	}
 
-    public function common_neighbours($coord_a, $coord_b)
-        {
-        $neighb_a = $this->all_neighbours($coord_a);
-        $neighb_b = $this->all_neighbours($coord_b);
-        $results = [];
-        for ($i=0; $i<count($neighb_a); $i++) { for($j=0; $j<count($neighb_b); $j++)
-            {
-            if ($neighb_a[$i]->col===$neighb_b[$j]->col && $neighb_a[$i]->row===$neighb_b[$j]->row )
-                { $results[] = $neighb_a[$i]; }
-            }}
-        return $results;
-        }
+	// Neighbourhood -----------------------------------------------------------
+	public function neighbour(HexCoordinate $coord, int $direction): HexCoordinate {
+	    $original_system = $coord->type;
+	    $cube_coord = $this->convert($coord, 'cube');
+	    $neighbour_coord = $this->cubeAdd($cube_coord, $this->cube_directions[$direction]);
+	    return $this->convert($neighbour_coord, $original_system);
+	}
+	public function allNeighbours(HexCoordinate $coord): array  {
+	    $original_system = $coord->type;
+	    $cube_coord = $this->convert($coord, 'cube');
+	    $neighbours = [];
+	    foreach ($this->cube_directions as $direction) {
+	        $neighbour_coord = $this->cubeAdd($cube_coord, $direction);
+	        $neighbours[] = $this->convert($neighbour_coord, $original_system);
+	    }
+	    return $neighbours;
+	}
+	public function isNeighbour(HexCoordinate $coord_a, HexCoordinate $coord_b): bool {
+	    $target_cube_str = $this->convert($coord_b, 'cube')->toString();
+	    foreach ($this->allNeighbours($coord_a) as $neighbour) {
+	        if ($this->convert($neighbour, 'cube')->toString() === $target_cube_str) {
+	            return true;
+	        }
+	    }
+	    return false;
+	}
+	public function commonNeighbours(HexCoordinate $coord_a, HexCoordinate $coord_b): array  {
+	    $neighbours_a = $this->allNeighbours($coord_a);
+	    $neighbours_b_str = array_flip(array_map(
+	        fn($n) => $this->convert($n, 'cube')->toString(),
+	        $this->allNeighbours($coord_b)
+	    ));
+	    return array_values(array_filter($neighbours_a, 
+	        fn($n) => isset($neighbours_b_str[$this->convert($n, 'cube')->toString()])
+	    ));
+	}
+	public function cubeDirection(HexCoordinate $coord_a, HexCoordinate $coord_b): ?int {
+		$cube_a = $this->convert($coord_a, 'cube');
+		$cube_b = $this->convert($coord_b, 'cube');
+	    $diff = $this->cubeSubstract(
+	        $this->convert($cube_b, 'cube'),
+	        $this->convert($cube_a, 'cube')
+	    );
+	    foreach ($this->cube_directions as $i => $direction) {
+	        if ($this->coordsEqual($diff, $direction)) {
+	            return $i;
+	        }
+	    }
+	    return null;
+	}
 
-	public function cube_direction($cube_a, $cube_b)
-		{
-		$cube_a = $this->convert($cube_a, 'cube');
-		$cube_b = $this->convert($cube_b, 'cube');
-		$diff = $this->cube_sub($cube_b, $cube_a);
-		foreach ($this->cube_directions as $i => $direction) {
-			if (
-		    	$diff->x === $direction->x &&
-		        $diff->y === $direction->y &&
-		        $diff->z === $direction->z
-			) {
-				return $i;
-			}
-		}
-		return false;
-		}
-    // Draws & Fun -------------------------------------------------------------    
-    public function line_draw($coord_a, $coord_b)
-        {
-        // Finding current $coordinate system :
-        $that_sys = $coord_a->type;
-        // Working with easiest $coordinate system :
-        $cube_a = $this->convert($coord_a, 'cube');
-        $cube_b = $this->convert($coord_b, 'cube');
-        // Let's "draw" :
-        $N = $this->distance($cube_a, $cube_b);
-        // If someone gives us both the same coords stupid bastard.
-		if ($N == 0) { return [$this->convert($cube_a, $that_sys)]; }
-        $results = [];
-        for ($i=0; $i<=$N; $i++)
-            {
-            // Finding the cube $coords :
-            // $cube_step = ($this->cube_round($this->cube_lerp($cube_a, $cube_b, 1/$N*$i)));
-            $cube_step = ($this->cube_round($this->cube_lerp($cube_a, $cube_b, $i/$N)));
-            // Convert $it back, and push $in $results $array:
-            $results[] = ($this->convert($cube_step, $that_sys));
-            }
-        return $results;
-        }
-	public function noisy_line($coord_a, $coord_b, int $depth = 2, float $amplitude = 1): array
-		{
+    // Draws & Fun -------------------------------------------------------------
+	public function drawLine(HexCoordinate $start, HexCoordinate $end): array {
+	    $start_cube = $this->convert($start, 'cube');
+	    $end_cube = $this->convert($end, 'cube');
+	    $original_system = $start->type;
+	    $dx = $end_cube->x - $start_cube->x;
+	    $dy = $end_cube->y - $start_cube->y;
+	    $dz = $end_cube->z - $start_cube->z;
+	    $n = max(abs($dx), abs($dy), abs($dz));
+	    if ($n === 0.0 || $n === 0 ) { return [$start]; }
+	    $line = [];
+	    for ($i = 0; $i <= $n; $i++) {
+	        $x = $start_cube->x + $dx * $i / $n;
+	        $y = $start_cube->y + $dy * $i / $n;
+	        $z = -$x - $y; // Maintain cube constraint
+	        $rounded = $this->cubeRound(new Cube([$x, $y, $z]));
+	        $line[] = $this->convert($rounded, $original_system);
+	    }
+	    return array_values(array_unique($line, SORT_REGULAR));
+	}
+	public function generateNoisyLine($coord_a, $coord_b, int $depth = 2, int $amplitude = 1): array {
 		// A line semi-random from a to b. depth is the number of recursive split
 		// (middle of lines taken) amplitude, the random allowed around
 	    $that_sys = $coord_a->type;
 	    $a = $this->convert($coord_a, 'cube');
 	    $b = $this->convert($coord_b, 'cube');
 	    // Obtenir la série de points bruités en cube
-	    $controlPoints = $this->recursive_noisy_line($a, $b, $depth, $amplitude);
+	    $controlPoints = $this->recursiveNoisyLine($a, $b, $depth, $amplitude);
 	    // Relier les points 2 à 2 avec line_draw()
 	    $result = [];
 	    $count = count($controlPoints);
 	    for ($i = 0; $i < $count - 1; $i++) {
-	        $segment = $this->line_draw($controlPoints[$i], $controlPoints[$i + 1]);
+	        $segment = $this->drawLine($controlPoints[$i], $controlPoints[$i + 1]);
 	        array_pop($segment); // Évite la duplication du point suivant
 	        $result = array_merge($result, $segment);
 	    }
@@ -249,222 +319,125 @@ class Hexalib {
 	    $result[] = $this->convert($controlPoints[$count - 1], $that_sys);
 	    return $result;
 		}
-	private function recursive_noisy_line($a, $b, int $depth, float $amplitude): array
-		{
-	    if ($depth === 0) { return [$a, $b]; }
-	    // Midpoint simple
-	    $mid = $this->cube_lerp($a, $b, 0.5);
-	    // Ajout de bruit aléatoire : décalage sur x/y/z
-	    $mid->x += rand(-100, 100) / 100 * $amplitude;
-	    $mid->y += rand(-100, 100) / 100 * $amplitude;
-	    $mid->z = -$mid->x - $mid->y; // Contrôle : x+y+z = 0
-	    $mid = $this->cube_round($mid);
-	    // Appel récursif sur A→M et M→B
-	    $first_half = $this->recursive_noisy_line($a, $mid, $depth - 1, $amplitude / 2);
-	    $second_half = $this->recursive_noisy_line($mid, $b, $depth - 1, $amplitude / 2);
-	    // Fusion sans dupliquer le point milieu
-	    array_pop($first_half);
-	    return array_merge($first_half, $second_half);
-		}
+	private function recursiveNoisyLine($a, $b, int $depth, int $amplitude): array {
+		if ($depth === 0) { return [$a, $b]; }
+		$mid = $this->cubeLerp($a, $b, 0.5);
+		$mid = $this->cubeRound($mid);
+		// Ajout de bruit entier sur X et Y, Z compensé
+		$dx = rand(-$amplitude, $amplitude);
+		$dy = rand(-$amplitude, $amplitude);
+		$mid->x += $dx;
+		$mid->y += $dy;
+		$mid->z = -$mid->x - $mid->y;
+		$first_half = $this->recursiveNoisyLine($a, $mid, $depth - 1, max(1, intdiv($amplitude, 2)));
+		$second_half = $this->recursiveNoisyLine($mid, $b, $depth - 1, max(1, intdiv($amplitude, 2)));
+		array_pop($first_half);
+		return array_merge($first_half, $second_half);
+	}
+	public function ring(HexCoordinate $center, int $radius): array {
+	    if ($radius < 0) { throw new InvalidArgumentException("Radius must be positive"); }
+	    $original_system = $center->type;
+	    $center_cube = $this->convert($center, 'cube');
+	    $ring = [];
+	    // Special case: radius 0 returns just the center
+	    if ($radius === 0) { return [$this->convert($center_cube, $original_system)]; }
+	    // Get starting position (4th direction = sud-ouest en cube)
+	    $current_cube = $this->cubeScale($center_cube, $this->cube_directions[4], $radius);
+	    $ring[] = $this->convert($current_cube, $original_system);
+	    // Generate each side of the hexagon
+	    for ($direction = 0; $direction < 6; $direction++) {
+	        for ($step = 1; $step <= $radius; $step++) {
+	            $current_cube = $this->neighbour($current_cube, $direction);
+	            $ring[] = $this->convert($current_cube, $original_system);
+	        }
+	    }
+	    return $ring;
+	}
+	public function spiral(HexCoordinate $center, int $radius): array {
+		// Deepseek said this is optimal, and said to avoir array_merge !!!
+	    if ($radius < 0) { throw new InvalidArgumentException("Radius must be positive"); }
+	    $spiral = [$center];
+	    if ($radius === 0) { return $spiral; }
+	    // Pre-allocate (optimisation of the death)
+	    $estimated_size = 1 + 3 * $radius * ($radius + 1); // 1 + Σ(6r)
+	    $spiral = [$center];
+	    $spiral = array_pad($spiral, $estimated_size, null);
+	    $index = 1;
+	    for ($current_radius = 1; $current_radius <= $radius; $current_radius++) {
+	        $ring = $this->ring($center, $current_radius);
+	        foreach ($ring as $hex) { $spiral[$index++] = $hex; }
+	    }
+	    return array_slice($spiral, 0, $index);
+	}
+/*	
+	public function noisySpiral(HexCoordinate $center, int $radius): array {
+	    $oddr_center = $this->convert($center, 'oddr');
+	    $visited = [];
+	    $result = [];
+	    $frontier = [];
+	    // Always include center
+	    $center_key = "{$oddr_center->col},{$oddr_center->row}";
+	    $visited[$center_key] = true;
+	    $result[] = $oddr_center;
+	    if ($radius <= 0) { return $result; }
+	    $frontier = [$oddr_center];
+	    $base_probability = 80; // 80% base probability for first ring
+	    for ($step = 1; $step <= $radius; $step++) {
+	        $new_frontier = [];
+	        $current_probability = 100 - (int)round($step * $base_probability / $radius);
+	        foreach ($frontier as $current) {
+	            foreach ($this->ring($current, 1) as $neighbor) {
+	                $neighbor_key = "{$neighbor->col},{$neighbor->row}";
+	                if (isset($visited[$neighbor_key])) { continue; }
+	                $visited[$neighbor_key] = true;
+	                if (rand(0, 100) <= $current_probability) {
+	                    $result[] = $neighbor;
+	                    $new_frontier[] = $neighbor;
+	                }
+	            }
+	        }
+	        $frontier = $new_frontier;
+	        if (empty($frontier)) { break; }
+	    }
+	    return $result;
+	}
+*/
+	public function noisySpiral(HexCoordinate $center, int $radius): array {
+	    if ($radius < 0) { throw new InvalidArgumentException("Radius must be positive"); }
+	    $oddr_center = $this->convert($center, 'oddr');
+	    $result = [$oddr_center];
+	    if ($radius === 0) { return $result; }
+	    // Optimisation: pré-allocation mémoire
+	    $max_possible_results = (int)(3 * $radius * ($radius + 1) * 0.8 + 1); // Estimation 80% de remplissage
+	    $result = array_pad([$oddr_center], $max_possible_results, null);
+	    $result_count = 1;
+	    $visited = [$oddr_center->col => [$oddr_center->row => true]];
+	    $frontier = [$oddr_center];
+	    $base_probability = 80;
+	    for ($step = 1; $step <= $radius; $step++) {
+	        $new_frontier = [];
+	        $current_probability = 100 - (int)round($step * $base_probability / $radius);
+	        $probability_threshold = $current_probability / 100;
+	        foreach ($frontier as $current) {
+	            $neighbors = $this->ring($current, 1);
+	            foreach ($neighbors as $neighbor) {
+	                $col = $neighbor->col;
+	                $row = $neighbor->row;
+	                // Vérification de visite plus rapide avec tableau 2D
+	                if (isset($visited[$col][$row])) { continue; }
+	                // Marquer comme visité immédiatement
+	                $visited[$col][$row] = true;
+	                if (mt_rand() / mt_getrandmax() <= $probability_threshold) {
+	                    $result[$result_count++] = $neighbor;
+	                    $new_frontier[] = $neighbor;
+	                }
+	            }
+	        }
+	        if (empty($new_frontier)) { break; }
+	        $frontier = $new_frontier;
+	    }
+	    return array_slice($result, 0, $result_count);
+	}
 
-	public function noisyline_draw($coord_a, $coord_b, $variation_strength = 1)
-		{
-	    // Determine the current coordinate system
-	    $that_sys = $coord_a->type;
-	    // Convert coordinates to 'cube' system for easier calculations
-	    $cube_a = $this->convert($coord_a, 'cube');
-	    $cube_b = $this->convert($coord_b, 'cube');
-	    // Calculate the number of steps
-	    $N = $this->distance($cube_a, $cube_b);
-	    // Handle the edge case where both coordinates are the same
-	    if ($N == 0) { return [$this->convert($cube_a, $that_sys)]; }
-	    $results = [];
-	    // Interpolate and add random variations
-	    for ($i = 0; $i <= $N; $i++)
-	    	{
-	        // Calculate interpolated position
-	        $interpolated = $this->cube_lerp($cube_a, $cube_b, $i / $N);
-
-	        // Apply random variation to the cube coordinates
-	        $random_offset = [
-	            'x' => mt_rand(-$variation_strength, $variation_strength),
-	            'y' => mt_rand(-$variation_strength, $variation_strength),
-	            'z' => mt_rand(-$variation_strength, $variation_strength)
-	        ];
-
-	        // Adjust to maintain the cube coordinate constraint x + y + z = 0
-	        $random_offset['z'] = -($random_offset['x'] + $random_offset['y']);
-
-	        $rand_point = new Cube([$random_offset['x'], $random_offset['y'], $random_offset['z']]);
-
-	        $noisy_point = $this->cube_add($interpolated, $rand_point);
-
-	        // Round the noisy point to the nearest hex
-	        $cube_step = $this->cube_round($noisy_point);
-
-	        // Convert it back to the original coordinate system and store in results
-	        $results[] = $this->convert($cube_step, $that_sys);
-	    	}
-	    return $results;
-		}
-    public function ring($coord, $radius)
-        {
-        // Finding current $coordinate system :
-        $that_sys = $coord->type;
-        // Working with easiest $coordinate system :
-        $center = $this->convert($coord, 'cube');
-        // Let's Ring !
-        $results = [];
-        // This code doesn't work for $radius = 0; can you see why?
-        $cube_step = $this->cube_scale($center, $this->cube_directions[4], $radius);
-        array_push($results, $this->convert($cube_step, $that_sys));
-        for ($i=0; $i<=5; $i++) { for ($j=0; $j<$radius; $j++)
-            {
-            $cube_step = $this->neighbour($cube_step, $i);
-            array_push($results, $this->convert($cube_step, $that_sys));
-            } }
-        return $results;
-        }
-    public function spiral($coord, $radius)
-        {
-        // Let's Spiral ! (multiple rings)
-        $results = [$coord];
-        for ($i=1; $i<=$radius; $i++) { $results = array_merge($results, $this->ring($coord, $i));}
-        return $results;
-        }
-
-public function noisy_spiral($coord, $radius) 
-{
-    $coord = $this->convert($coord, 'Oddr');
-    $done = [];
-    $result = [];
-    $originKey = "{$coord->col},{$coord->row}";
-    $done[$originKey] = true;
-    $result[] = $coord; // Centre toujours inclus
-    
-    if ($radius <= 0) return $result;
-    
-    $frontier = [$coord];
-    $baseProbability = 80; // pct Probabilité de base pour le 1er anneau
-    
-    for ($step = 1; $step <= $radius; $step++) 
-    {
-        $newFrontier = [];
-        // Probabilité qui décroît avec la distance
-        // $currentProb = $baseProbability * (1 - ($step / $radius));
-
-        $currentProb = 100 - round($step * $baseProbability / $radius);
-        
-        foreach ($frontier as $c) 
-        {
-            $ring = $this->ring($c, 1);
-            foreach ($ring as $n) 
-            {
-                $key = "{$n->col},{$n->row}";
-                if (isset($done[$key])) continue;
-                
-                // Pour le centre, on a déjà inclus, pour les autres on teste
-                if ((rand(0, 100) > $currentProb)) continue;
-                
-                $done[$key] = true;
-                $result[] = $n;
-                $newFrontier[] = $n;
-            }
-        }
-        
-        $frontier = $newFrontier;
-        if (empty($frontier)) break;
-    }
-    
-    return $result;
 }
-
-    // Arythmetics -------------------------------------------------------------
-    public function lerp($a, $b, $t)
-        {
-        return $a + ($b - $a) * $t;
-        }
-    public function cube_scale($origin, $dir_matrix, $d)
-        {
-        $new_coord = $origin;
-        for ($i=0; $i<$d; $i++){$new_coord = $this->cube_add($new_coord, $dir_matrix);}
-        return $new_coord;
-        }
-    public function cube_lerp($cube_a, $cube_b, $t)
-        {
-        return new Cube([$this->lerp($cube_a->x, $cube_b->x, $t), $this->lerp($cube_a->y, $cube_b->y, $t), $this->lerp($cube_a->z, $cube_b->z, $t)]);
-        }
-    public function cube_round($cube)
-        {
-        $rx = round($cube->x);
-        $ry = round($cube->y);
-        $rz = round($cube->z);
-
-        $x_diff = abs($rx - $cube->x);
-        $y_diff = abs($ry - $cube->y);
-        $z_diff = abs($rz - $cube->z);
-
-        if ($x_diff > $y_diff && $x_diff > $z_diff) {$rx = -$ry-$rz;}
-        else if ($y_diff > $z_diff) {$ry = -$rx-$rz;}
-        else {$rz = -$rx-$ry;}
-        
-        return new Cube([$rx,$ry,$rz]);
-        }
-    public function cube_distance($cube_a, $cube_b)
-        {
-        return (abs($cube_a->x - $cube_b->x) + abs($cube_a->y - $cube_b->y) + abs($cube_a->z - $cube_b->z)) / 2;
-        }
-    public function cube_add($cube_a, $cube_b)
-        {
-        $rx = $cube_a->x*1 + $cube_b->x*1;
-        $ry = $cube_a->y*1 + $cube_b->y*1;
-        $rz = $cube_a->z*1 + $cube_b->z*1;
-        return new Cube([$rx,$ry,$rz]);
-        }
-    public function cube_sub($cube_a, $cube_b)
-        {
-        $rx = $cube_a->x*1 - $cube_b->x*1;
-        $ry = $cube_a->y*1 - $cube_b->y*1;
-        $rz = $cube_a->z*1 - $cube_b->z*1;
-        return new Cube([$rx,$ry,$rz]);
-        }        
-    // Convert (from)=>(to) ----------------------------------------------------
-    public function cube_to_axial($cube)
-        {
-        $q = $cube->x;
-        $r = $cube->z;
-        return new Axial([$q,$r]);
-        }
-    public function axial_to_cube($axial)    
-        {
-        $x = $axial->q;
-        $z = $axial->r;
-        $y = $axial->s;
-        return new Cube([$x,$y,$z]);
-        }
-    public function cube_to_oddr($cube)    
-        {
-        $col = $cube->x + ($cube->z - ($cube->z&1)) / 2;
-        $row = $cube->z;
-        return new Oddr([$col, $row]);
-        }
-    public function oddr_to_cube($oddr)    
-        {
-        $x = $oddr->col - ($oddr->row - ($oddr->row&1)) / 2;
-        $z = $oddr->row;
-        $y = -$x-$z;
-        return new Cube([$x, $y, $z]);
-        }
-    public function oddr_to_axial($oddr)    
-        {
-        $cube = $this->oddr_to_cube($oddr);
-        return $this->cube_to_axial($cube);
-        }
-    public function axial_to_oddr($axial)    
-        {
-        $cube = $this->axial_to_cube($axial);
-        return $this->cube_to_oddr($cube);
-        }        
-    }
-
 ?>

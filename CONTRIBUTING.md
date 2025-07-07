@@ -18,11 +18,11 @@ Thanks for considering contributing to the project! To keep the codebase consist
 
 ### PHP (Back-end: KlodWeb / KlodWorld)
 
-- **Classes**: `CamelCase`  
+- **Classes**: `PascalCase`  
   `class GameMaster`, `class PlayerStatsManager`
 
-- **Methods**: `CamelCase`  
-  `function StartTurn()`, `function AddResource()`
+- **Methods**: `camelCase`  
+  `function startTurn()`, `function addResource()`
 
 - **Variables & properties**: `snake_case`  
   `$player_id`, `$current_turn`, `$world_config`

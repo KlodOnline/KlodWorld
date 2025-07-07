@@ -54,11 +54,11 @@ function convert_to_int($value) {
     }
     return null;
 }
-//------------------- TO PU IN HEXALIB
+//------------------- TO PUT IN HEXALIB
 function uniqueCoords(array $coords): array {
 	$uniqueMap = [];
 	foreach ($coords as $coord) {
-        $key = $coord->stg();
+        $key = $coord->toString();
         $uniqueMap[$key] = $coord;
     }
 	return array_values($uniqueMap);

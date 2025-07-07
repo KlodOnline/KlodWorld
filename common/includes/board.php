@@ -692,7 +692,7 @@ class Board {
 	        for ($j = $i + 1; $j < count($locatables); $j++) {
 	            $B_coord = $this->hexalib->coord([$locatables[$j]->col, $locatables[$j]->row], 'oddr');
 	            logMessage('Comparing '.serialize($locatables[$i]).' <-> '.serialize($locatables[$j]));
-	            if (!$this->hexalib->is_neighbour($A_coord, $B_coord)) { return false; }
+	            if (!$this->hexalib->isNeighbour($A_coord, $B_coord)) { return false; }
 	        }
 	    }
 

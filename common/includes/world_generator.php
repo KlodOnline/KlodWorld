@@ -212,62 +212,15 @@ class WorldGenerator {
 	}
 
 	public function drawSimpleLine($terrain, $coord1, $coord2) {
-		$coords_line = $this->hexalib->line_draw($coord1, $coord2);
+		$coords_line = $this->hexalib->drawLine($coord1, $coord2);
 	    $this->setGroundsFromCoords($coords_line, $terrain);
 	}
 
 	public function drawNoisyLine($terrain, $coord1, $coord2) {
-		$coords_line = $this->hexalib->noisy_line($coord1, $coord2, 4, 10);
+		$coords_line = $this->hexalib->generateNoisyLine($coord1, $coord2, 4, 10);
 	    $this->setGroundsFromCoords($coords_line, $terrain);		
 	}
 
-	public function drawOcean($coord1, $coord2, $size=1) {
-
-		if ($size>=3) {$radius = 2; $size=3;}
-		if ($size<=2) {$radius = 2; $size=2;}
-
-		$coords_line = $this->hexalib->noisyline_draw($coord1, $coord2, $size+1);
-
-		foreach($coords_line as $index => $coord){
-			if (!isset($prev_coord)) {$prev_coord = $coord; continue;}
-
-			$sub_coords_line = $this->hexalib->line_draw($prev_coord, $coord);
-			$this->setSpiralGroundsFromCoords($sub_coords_line, 1, $radius);
-
-			$prev_coord = $coord;
-		}
-
-		return;
-	}	
-	public function drawMountain($coord1, $coord2, $size=1) {
-		// Drawing hills
-		$hillSize = $size +1;
-		$coords_line = $this->hexalib->noisyline_draw($coord1, $coord2, $hillSize);
-		foreach($coords_line as $index => $coord){
-			if (!isset($prev_coord)) {$prev_coord = $coord; continue;}
-			$sub_coords_line = $this->hexalib->noisyline_draw($prev_coord, $coord, 1);
-			$this->setGroundsFromCoords($sub_coords_line, 3);
-			$prev_coord = $coord;
-		}
-		if ($hillSize>1) {
-			$coords_line = $this->hexalib->noisyline_draw($coord1, $coord2, 2);
-			$this->setSpiralGroundsFromCoords($coords_line, 3, 2);
-		}
-		//Drawing Mountains 
-		if ($size<1) {return;}
-		$coords_line = $this->hexalib->noisyline_draw($coord1, $coord2, $size);
-		foreach($coords_line as $index => $coord){
-			if (!isset($prev_coord)) {$prev_coord = $coord; continue;}
-			$sub_coords_line = $this->hexalib->noisyline_draw($prev_coord, $coord, 1);
-			$this->setGroundsFromCoords($sub_coords_line, 4);
-			$prev_coord = $coord;
-		}
-		if ($size>1) {
-			$coords_line = $this->hexalib->noisyline_draw($coord1, $coord2, 1);
-			$this->setSpiralGroundsFromCoords($coords_line, 4, 1);
-		}
-		return;
-	}
 
 
 	/* -------------------------------------------------------------------------
@@ -311,7 +264,7 @@ class WorldGenerator {
 				if ($allSame) {
 					// A splat
 					$splatRadius = rand((int)($radius/1.2), (int)($radius/2.5));
-					// $patch = $this->hexalib->noisy_spiral($center, $splatRadius);
+					// $patch = $this->hexalib->noisySpiral($center, $splatRadius);
 
 					// According to the current groundtype we don't mess
 					if ($groundType==$this->land['forest']) {
@@ -319,12 +272,12 @@ class WorldGenerator {
 						$alternatives = ['mountain', 'swamps'];
 						$replacement = $alternatives[array_rand($alternatives)];
 						if ($replacement=='mountain') {
-		    				$hillPatch = $this->hexalib->noisy_spiral($center, round($splatRadius ));
-		    				$mountainPatch = $this->hexalib->noisy_spiral($center, round($splatRadius * 0.5));
+		    				$hillPatch = $this->hexalib->noisySpiral($center, round($splatRadius ));
+		    				$mountainPatch = $this->hexalib->noisySpiral($center, round($splatRadius * 0.5));
 		    				$this->setGroundsFromCoords($hillPatch, $this->land['forestHill']);
 		    				$this->setGroundsFromCoords($mountainPatch,$this->land['mountain']);
 						} else {
-		    				$swampPatch = $this->hexalib->noisy_spiral($center, round($splatRadius * 0.6));
+		    				$swampPatch = $this->hexalib->noisySpiral($center, round($splatRadius * 0.6));
 						    $this->setGroundsFromCoords($swampPatch,$this->land['swamp']);
 						}
 						
@@ -336,20 +289,20 @@ class WorldGenerator {
 						$alternatives = ['mountain', 'forest', 'forestHill'];
 						$replacement = $alternatives[array_rand($alternatives)];
 						if ($replacement=='forest') {
-							$forestPatch = $this->hexalib->noisy_spiral($center, round($splatRadius ));
+							$forestPatch = $this->hexalib->noisySpiral($center, round($splatRadius ));
 							$this->setGroundsFromCoords($forestPatch, $this->land['forest']);
 						}
 						if ($replacement=='mountain') {
-		    				$hillPatch = $this->hexalib->noisy_spiral($center, round($splatRadius ));
-		    				$mountainPatch = $this->hexalib->noisy_spiral($center, round($splatRadius * 0.5));
+		    				$hillPatch = $this->hexalib->noisySpiral($center, round($splatRadius ));
+		    				$mountainPatch = $this->hexalib->noisySpiral($center, round($splatRadius * 0.5));
 		    				$this->setGroundsFromCoords($hillPatch, $this->land['plainHill']);
 		    				$this->setGroundsFromCoords($mountainPatch,$this->land['mountain']);
 						}
 
 						if ($replacement=='forestHill') {
-							$forestPatch = $this->hexalib->noisy_spiral($center, round($splatRadius ));
-		    				$hillPatch = $this->hexalib->noisy_spiral($center, round($splatRadius * 0.5 ));
-		    				$mountainPatch = $this->hexalib->noisy_spiral($center, round($splatRadius * 0.25));
+							$forestPatch = $this->hexalib->noisySpiral($center, round($splatRadius ));
+		    				$hillPatch = $this->hexalib->noisySpiral($center, round($splatRadius * 0.5 ));
+		    				$mountainPatch = $this->hexalib->noisySpiral($center, round($splatRadius * 0.25));
 		    				$this->setGroundsFromCoords($forestPatch, $this->land['forest']);
 		    				$this->setGroundsFromCoords($hillPatch,$this->land['forestHill']);
 		    				$this->setGroundsFromCoords($mountainPatch,$this->land['mountain']);
@@ -553,7 +506,7 @@ class WorldGenerator {
 		foreach ($forests as $forest_spot) {
 			$this->convertGround($forest_spot, 8, 2);
 			$this->convertGround($forest_spot, 3, 15);
-			$possible_seeds = $this->hexalib->all_neighbours($forest_spot);
+			$possible_seeds = $this->hexalib->allNeighbours($forest_spot);
 			foreach($possible_seeds as $each_possibility) {
 				$each_possibility->col = magicCylinder($each_possibility->col);
 				if (rand(0,100)<=$rate_pct) { $seeds[] = $each_possibility; }
@@ -660,7 +613,7 @@ class WorldGenerator {
 			// Ocean/Riviere touche = fini !
 			if ($this->board->getGroundNeighborOfTypes([1, 13], $coord->col, $coord->row)) { $finished = true; break;}
 
-			$originDirection = $this->hexalib->cube_direction($coord, $old_coord);
+			$originDirection = $this->hexalib->cubeDirection($coord, $old_coord);
 			$candidates = [];
     		for ($i = 2; $i <= 4; $i++) {
         		$nextDirection = ($originDirection + $i) % 6;
@@ -725,7 +678,7 @@ class WorldGenerator {
 
 	function isCoordNeighborOfArray($coord, $array) {
 	    foreach ($array as $item) {
-	    	if (!empty($this->hexalib->common_neighbours($item, $coord))) { return true; } 
+	    	if (!empty($this->hexalib->commonNeighbours($item, $coord))) { return true; } 
 	    }
 	    return false;
 	}
@@ -1085,9 +1038,9 @@ class WorldGenerator {
 		// Dessiner les îles : couches plaine > colline > montagne, centre en désert
 		$splatRadius = round($radius / 2);
 		foreach ($baseSpots as $spot) {
-		    $plainPatch = $this->hexalib->noisy_spiral($spot, round($splatRadius*1));
-		    $hillPatch = $this->hexalib->noisy_spiral($spot, round($splatRadius * 0.6));
-		    $mountainPatch = $this->hexalib->noisy_spiral($spot, round($splatRadius * 0.3));
+		    $plainPatch = $this->hexalib->noisySpiral($spot, round($splatRadius*1));
+		    $hillPatch = $this->hexalib->noisySpiral($spot, round($splatRadius * 0.6));
+		    $mountainPatch = $this->hexalib->noisySpiral($spot, round($splatRadius * 0.3));
 		    $this->setGroundsFromCoords($plainPatch,$this->land['plain']);
 		    $this->setGroundsFromCoords($hillPatch,$this->land['plainHill']);
 		    $this->setGroundsFromCoords($mountainPatch,$this->land['mountain']);
@@ -1212,161 +1165,6 @@ private function findConnectedArea($startCol, $startRow, $landTypeId, &$visited)
 		}
 	}
 
-
-
-	public function createTectonicPlates_old($load = true, $save = true, $size = null) {
-		if ($load) {$this->loadWorld();}
-		if ($size==null) { $size = round(MAX_ROW/10); }
-
-		$sommets = [];
-		$junctions = [];
-
-    	// Pré-calculer les limites de la carte une seule fois
-    	$max_row_limit = MAX_ROW - 1;
-    	$max_col_limit = MAX_COL - 1;
-
-		// Decouper ma map :
-		for ($currRow = 0; $currRow < MAX_ROW+$size; $currRow += $size) {
-		    for ($currCol = 0; $currCol < MAX_COL+$size; $currCol += $size) {
-		        // On s'assure que les coordonnées finales ne sortent pas de la carte
-		        $x = $currCol;
-		        $y = min($currRow, MAX_ROW - 1);
-		        // Ajouter la coordonnée du coin supérieur gauche
-		        $coord = $this->hexalib->coord([$x, $y], 'Oddr');
-		        $sommets = $this->addSommet($sommets, $x.'-'.$y, $coord);
-		    }
-		}
-		
-		logMessage('Map decoupee');
-
-		// Determiner les lignes existantes :
-	    foreach ($sommets as $key => $sommet) {
-	    	$currCoord = $sommet['coord'];
-			$col = $currCoord->col;
-	        $row = $currCoord->row;
-
-        	// Calculer les clés de voisinage une seule fois
-        	$rightcol = $col + $size;
-        	$bottomrow = ($row + $size >= MAX_ROW) ? $max_row_limit : $row + $size;
-        	$right_key = "$rightcol-$row";
-        	$bottom_key = "$col-$bottomrow";
-
-			// 1 	2 	3
-			// 4	+	5
-			// 6	7	8
-
-	        // Ligne horizontale (droite)
-	        if (isset($sommets[$right_key])) {
-	        	$junckey = $this->addJunction($junctions, $key, $right_key); 
-	        	if (isset($junckey)) {
-	        		$sommets[$key]['j5'] = $junckey;
-	        		$sommets[$right_key]['j4'] = $junckey;
-	        	}
-	        }
-
-	        // Ligne verticale (en bas)
-	        if (isset($sommets[$bottom_key])) {
-	        	$junckey = $this->addJunction($junctions, $key, $bottom_key); 
-	        	if (isset($junckey)) {
-	        		$sommets[$key]['j7'] = $junckey;
-	        		$sommets[$bottom_key]['j2'] = $junckey;
-	        	}
-	        }
-
-	        // Pour la beauté de la map, on n'autorise qu'une des deux diagonale:
-	        if (rand(0,1)==0) {
-				// Diagonale descendante droite
-				$diag_right_key = $rightcol . '-' . $bottomrow;
-			    if (isset($sommets[$diag_right_key]) and $bottomrow>$row) {
-		        	$junckey = $this->addJunction($junctions, $key, $diag_right_key); 
-		        	if (isset($junckey)) {
-		        		$sommets[$key]['j8'] = $junckey;
-		        		$sommets[$diag_right_key]['j1'] = $junckey;
-		        	}
-		    	}
-	        } else {
-			    // Diagonale descendante gauche
-			    if (isset($sommets[$right_key]) and isset($sommets[$bottom_key])) {
-		        	$junckey = $this->addJunction($junctions, $right_key, $bottom_key); 
-		        	if (isset($junckey)) {
-		        		$sommets[$bottom_key]['j3'] = $junckey;
-		        		$sommets[$right_key]['j6'] = $junckey;
-		        	}
-			    }
-	        }
-	    }
-
-		// Disperser un peu les sommets !
-		$randfact = round($size/3);
-		foreach ($sommets as $sommet) {
-			$sommet['coord']->col = max(0, min($sommet['coord']->col + mt_rand(-$randfact,$randfact), MAX_COL-1));
-			if ($sommet['coord']->row!=0 and $sommet['coord']->row!=MAX_ROW-1) {
-	    		$sommet['coord']->row = max(0, min($sommet['coord']->row + mt_rand(-$randfact,$randfact), MAX_ROW-1));				
-			}
-		}
-
-	    $genre_lines = [ 'mountains' => [], 'oceans' => [], 'mountOceans' => [], 'oceansMount' => [] ];
-	    $totals = [ 'mountains' => 0, 'mountOceans' => 0, 'oceansMount' => 0, 'oceans' => 0 ];
-		$finished = false;
-
-		while(!$finished) {
-			$key = array_rand($sommets);
-			$result = $this->createFail($sommets, $junctions, $key, 'j2');
-			$genre = $this->predictibleAttribution();
-			$totals[$genre] += count($result);
-			$genre_lines[$genre][] = $result;
-        	if (($totals['mountOceans']+$totals['oceansMount'])>40 && $totals['oceans'] > 40 && $totals['mountains'] > 50)
-				{$finished = true;}
-		}
-
-		$test_mode = false;
-
-		logMessage('Go draw lines !');
-
-		// ------------------------------------------------------------
-		//	Mountains Chain - simple, classical
-		// ------------------------------------------------------------
-		logMessage('Mountains.');
-		$this->lineDrawer($test_mode, 4, $genre_lines['mountains'], 'drawMountain', 1, 0);
-		
-		// ------------------------------------------------------------
-		// LeftHand  & RightHand Mountains in border of Oceans
-		// ------------------------------------------------------------		
-		logMessage('MountainsBorders 1.');
-		$this->lineDrawer($test_mode, 7, $genre_lines['mountOceans'], 'drawMountain', 1, 6);
-		logMessage('MountainsBorders 2.');
-		$this->lineDrawer($test_mode, 7, $genre_lines['oceansMount'], 'drawMountain', 1, -6);
-		logMessage('MountainsBorders 3.');
-		$this->lineDrawer($test_mode, 7, $genre_lines['mountOceans'], 'drawOcean', 2, 0);
-		logMessage('MountainsBorders 4.');
-		$this->lineDrawer($test_mode, 7, $genre_lines['oceansMount'], 'drawOcean', 2, 0);
-	    
-	    // ------------------------------------------------------------
-	    //	OCEANS !!! AT LEAST :) 
-	    // ------------------------------------------------------------
-
-		logMessage('Oceans.');
-
-	    $this->lineDrawer($test_mode, 1, $genre_lines['oceans'], 'drawOcean', 2, 0);
-
-	    // --
-
-	    logMessage('Saving...');
-
-	    if ($save) {$this->saveWorld();}
-
-	    // disableLogs();
-
-		return;
-	}
-
-	public function predictibleAttribution() {
-	    if (!isset($this->attribution) || $this->attribution > 4) { $this->attribution = 0; }
-	    $genres = ['mountains', 'oceans', 'mountOceans', 'oceansMount', 'oceans'];
-	    $genre = $genres[$this->attribution];
-	    $this->attribution++;
-	    return $genre;
-	}
 
 
 }
