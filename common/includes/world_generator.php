@@ -128,37 +128,6 @@ class WorldGenerator {
 	}
 
 	/* -------------------------------------------------------------------------
-	    Clear the world (full plains)
-	------------------------------------------------------------------------- */
-	public function clearWorld(bool $load = true, bool $save = true): void {
-		logMessage('Clearing World ...');
-	    if ($load) $this->loadWorld();
-	    $all_coords = $this->generateAllMapCoords();
-	    $this->setGroundsFromCoords($all_coords, $this->land['plain']);
-	    $this->removeOutOfBoundsGrounds();
-	    if ($save) $this->saveWorld();
-		logMessage('Clearing done !');
-	}
-	private function generateAllMapCoords(): array {
-	    $coords = [];
-	    for ($row = 0; $row < MAX_ROW; $row++) {
-	        for ($col = 0; $col < MAX_COL; $col++) {
-	            $coords[] = $this->hexalib->coord([$col, $row], 'Oddr');
-	        }
-	    }
-	    return $coords;
-	}
-	private function removeOutOfBoundsGrounds(): void {
-	    $to_delete = [];
-	    $this->board->forEachGround(function ($col, $row) use (&$to_delete) {
-	        if ($col < 0 || $col >= MAX_COL || $row < 0 || $row >= MAX_ROW) {
-	            $to_delete[] = $this->board->getGround($col, $row);
-	        }
-	    });
-	    foreach ($to_delete as $ground) { $this->board->deleteFromCollection($ground); }
-	}
-
-	/* -------------------------------------------------------------------------
 	    Drawing Functions !!!!
 	------------------------------------------------------------------------- */
 	public function drawSimpleLine($terrain, $coord1, $coord2) {
@@ -203,6 +172,91 @@ class WorldGenerator {
 		    $current = $next;
 		}
 	}
+	public function deleteSmallerThan($terrainName, $minSize, $newTerrainName) {
+	    $landTypeId = $this->land[$terrainName] ?? null;
+	    $newLandTypeId = $this->land[$newTerrainName] ?? null;
+	    if ($landTypeId === null || $newLandTypeId === null) {
+	        error_log("Terrain name not found: $terrainName or $newTerrainName");
+	        return;
+	    }
+	    $visited = [];
+	    $areasToProcess = [];
+	    // Trouver toutes les cases du terrain spécifié
+	    $this->board->forEachGround(function ($col, $row) use ($landTypeId, &$visited, &$areasToProcess) {
+	        $key = "$col,$row";
+	        if (isset($visited[$key])) { return; }
+	        $ground = $this->getGround($col, $row);
+	        if ($ground && $ground->getGroundType() === $landTypeId) {
+	            $area = $this->findConnectedArea($col, $row, $landTypeId, $visited);
+	            if (!empty($area)) { $areasToProcess[] = $area; }
+	        }
+	    });
+	    // Traiter chaque région trouvée
+	    foreach ($areasToProcess as $area) {
+	        if (count($area) < $minSize) {
+	            foreach ($area as $coord) {
+	                list($col, $row) = $coord;
+	                $this->setGround($col, $row, $newLandTypeId);
+	            }
+	        }
+	    }
+	}
+	private function findConnectedArea($startCol, $startRow, $landTypeId, &$visited) {
+	    $area = [];
+	    $queue = [[$startCol, $startRow]];
+	    while (!empty($queue)) {
+	        list($col, $row) = array_shift($queue);
+	        $key = "$col,$row";
+	        if (isset($visited[$key])) { continue; }
+	        $visited[$key] = true;
+	        $area[] = [$col, $row];
+	        // Obtenir tous les voisins du même type sans conversion hexagonale
+	        $neighbors = $this->board->getGroundNeighborOfTypes([$landTypeId], $col, $row);
+	        foreach ($neighbors as $neighbor) {
+	            // Supposons que $neighbor est un objet Ground avec des méthodes getCol()/getRow()
+	            try {
+	                $nCol = $neighbor->col;
+	                $nRow = $neighbor->row;
+	                if (!isset($visited["$nCol,$nRow"])) { $queue[] = [$nCol, $nRow]; }
+	            } catch (Exception $e) {
+	                error_log("Error processing neighbor: " . $e->getMessage());
+	                continue;
+	            }
+	        }
+	    }
+	    return $area;
+	}
+
+	/* -------------------------------------------------------------------------
+	    Clear the world (full plains)
+	------------------------------------------------------------------------- */
+	public function clearWorld(bool $load = true, bool $save = true): void {
+		logMessage('Clearing World ...');
+	    if ($load) $this->loadWorld();
+	    $all_coords = $this->generateAllMapCoords();
+	    $this->setGroundsFromCoords($all_coords, $this->land['plain']);
+	    $this->removeOutOfBoundsGrounds();
+	    if ($save) $this->saveWorld();
+		logMessage('Clearing done !');
+	}
+	private function generateAllMapCoords(): array {
+	    $coords = [];
+	    for ($row = 0; $row < MAX_ROW; $row++) {
+	        for ($col = 0; $col < MAX_COL; $col++) {
+	            $coords[] = $this->hexalib->coord([$col, $row], 'Oddr');
+	        }
+	    }
+	    return $coords;
+	}
+	private function removeOutOfBoundsGrounds(): void {
+	    $to_delete = [];
+	    $this->board->forEachGround(function ($col, $row) use (&$to_delete) {
+	        if ($col < 0 || $col >= MAX_COL || $row < 0 || $row >= MAX_ROW) {
+	            $to_delete[] = $this->board->getGround($col, $row);
+	        }
+	    });
+	    foreach ($to_delete as $ground) { $this->board->deleteFromCollection($ground); }
+	}
 
 	/* -------------------------------------------------------------------------
 	    BREAKS TERRAIN MONOTONY
@@ -228,11 +282,11 @@ class WorldGenerator {
 	        $this->land['forest'], 
 	        $this->land['plain']
 	    ];
-	    $this->board->forEachGround(function ($currCol, $currRow) use ($boring_types, $boring_radius) {
-	        $ground = $this->getGround($currCol, $currRow);
+	    $this->board->forEachGround(function ($curr_col, $curr_row) use ($boring_types, $boring_radius) {
+	        $ground = $this->getGround($curr_col, $curr_row);
 	        $ground_type = $ground->getGroundType();
 	        if (!in_array($ground_type, $boring_types)) { return; }
-	        $center = $this->hexalib->coord([$currCol, $currRow], 'Oddr');
+	        $center = $this->hexalib->coord([$curr_col, $curr_row], 'Oddr');
 	        if ($this->isUniformArea($center, $ground_type, $boring_radius)) {
 	            $this->applyTerrainVariation($center, $ground_type, $boring_radius);
 	        }
@@ -323,8 +377,8 @@ class WorldGenerator {
 	public function DesertsCoasts($load = true, $save = true) {
 		if ($load) {$this->loadWorld();}
 		$this->updateCoastlines();
-		$this->board->forEachGround(function ($currCol, $currRow) {
-			$actual_ground = $this->getGround($currCol, $currRow);
+		$this->board->forEachGround(function ($curr_col, $curr_row) {
+			$actual_ground = $this->getGround($curr_col, $curr_row);
 			if (isset($actual_ground)) {
 				$coord = $actual_ground->coord('Oddr');
 				// Drawing deserts / anything @$desert_factor from savanna borders
@@ -375,137 +429,99 @@ class WorldGenerator {
 		// Zone arctique :
 		if ($row<=$this->climate_lines['arctic_circle'] ) { return 4; }
 		// Zone Temperee nord :
-		$temperateZoneSize = ($this->climate_lines['tropic_north'] - $this->climate_lines['arctic_circle'])/3;
-		if ($row>$this->climate_lines['arctic_circle'] and $row<($this->climate_lines['arctic_circle']+$temperateZoneSize)) { return 0; }
-		if ($row>=($this->climate_lines['arctic_circle']+$temperateZoneSize) and $row<($this->climate_lines['arctic_circle']+$temperateZoneSize*2)) { return 1; }
-		if ($row>=($this->climate_lines['arctic_circle']+$temperateZoneSize*2) and $row<($this->climate_lines['tropic_north'])) { return northDirection($row); }
+		$temperate_zone_size = ($this->climate_lines['tropic_north'] - $this->climate_lines['arctic_circle'])/3;
+		if ($row>$this->climate_lines['arctic_circle'] and $row<($this->climate_lines['arctic_circle']+$temperate_zone_size)) { return 0; }
+		if ($row>=($this->climate_lines['arctic_circle']+$temperate_zone_size) and $row<($this->climate_lines['arctic_circle']+$temperate_zone_size*2)) { return 1; }
+		if ($row>=($this->climate_lines['arctic_circle']+$temperate_zone_size*2) and $row<($this->climate_lines['tropic_north'])) { return northDirection($row); }
 		// Zone tropicale nord :
-		$tropicalZoneSize = ($this->climate_lines['equator'] - $this->climate_lines['tropic_north'])/3;
-		if ($row>=$this->climate_lines['tropic_north'] and $row<($this->climate_lines['tropic_north']+$tropicalZoneSize)) { return southDirection($row); }
-		if ($row>=($this->climate_lines['tropic_north']+$tropicalZoneSize) and $row<($this->climate_lines['tropic_north']+$tropicalZoneSize*2)) { return 4; }
-		if ($row>=($this->climate_lines['tropic_north']+$tropicalZoneSize*2) and $row<=($this->climate_lines['equator'])) { return 3; }
+		$tropical_zone_size = ($this->climate_lines['equator'] - $this->climate_lines['tropic_north'])/3;
+		if ($row>=$this->climate_lines['tropic_north'] and $row<($this->climate_lines['tropic_north']+$tropical_zone_size)) { return southDirection($row); }
+		if ($row>=($this->climate_lines['tropic_north']+$tropical_zone_size) and $row<($this->climate_lines['tropic_north']+$tropical_zone_size*2)) { return 4; }
+		if ($row>=($this->climate_lines['tropic_north']+$tropical_zone_size*2) and $row<=($this->climate_lines['equator'])) { return 3; }
 		// Zone tropicale sud :
-		if ($row>=$this->climate_lines['equator'] and $row<($this->climate_lines['equator']+$tropicalZoneSize)) { return 3; }
-		if ($row>=($this->climate_lines['equator']+$tropicalZoneSize) and $row<($this->climate_lines['equator']+$tropicalZoneSize*2)) { return 2; }
-		if ($row>=($this->climate_lines['equator']+$tropicalZoneSize*2) and $row<($this->climate_lines['tropic_south'])) { return northDirection($row); }
+		if ($row>=$this->climate_lines['equator'] and $row<($this->climate_lines['equator']+$tropical_zone_size)) { return 3; }
+		if ($row>=($this->climate_lines['equator']+$tropical_zone_size) and $row<($this->climate_lines['equator']+$tropical_zone_size*2)) { return 2; }
+		if ($row>=($this->climate_lines['equator']+$tropical_zone_size*2) and $row<($this->climate_lines['tropic_south'])) { return northDirection($row); }
 		// Zone Temperee sud :
-		if ($row>=$this->climate_lines['tropic_south'] and $row<($this->climate_lines['tropic_south']+$temperateZoneSize)) { return southDirection($row); }
-		if ($row>=($this->climate_lines['tropic_south']+$temperateZoneSize) and $row<($this->climate_lines['tropic_south']+$temperateZoneSize*2)) { return 5; }
-		if ($row>=($this->climate_lines['tropic_south']+$temperateZoneSize*2) and $row<($this->climate_lines['antarctic_circle'])) { return 0; }
+		if ($row>=$this->climate_lines['tropic_south'] and $row<($this->climate_lines['tropic_south']+$temperate_zone_size)) { return southDirection($row); }
+		if ($row>=($this->climate_lines['tropic_south']+$temperate_zone_size) and $row<($this->climate_lines['tropic_south']+$temperate_zone_size*2)) { return 5; }
+		if ($row>=($this->climate_lines['tropic_south']+$temperate_zone_size*2) and $row<($this->climate_lines['antarctic_circle'])) { return 0; }
 		// Zone antarctique :
 		if ($row>=$this->climate_lines['antarctic_circle'] ) { return 2; }
 		return;
 	}
 	public function humidity($load = true, $save = true) {
 		if ($load) {$this->loadWorld();}
-		$base_water = round(MAX_ROW/10);
-		$base_water = 30;
-
+		$base_water = round(MAX_COL/10);
 		$humidity_score = [];
-		$wetSpots = [];
+		$wet_spots = [];
 		logMessage('Finding Wet Spot');
-		// First : Finding "wetSpots", places where rains helps forests (plains
+		// First : Finding "wet_spots", places where rains helps forests (plains
 		// under oceans winds...)
-		$this->board->forEachGround(function ($currCol, $currRow) use (&$humidity_score, &$wetSpots, &$base_water) {
+		$this->board->forEachGround(function ($curr_col, $curr_row) use (&$humidity_score, &$wet_spots, $base_water) {
 		    // if Current place is an ocean ...
-		    $actualLand = $this->getGround($currCol, $currRow);
-
-
-		    if ($actualLand !== null && $actualLand->getGroundType() == 1) { 
-
-		        $direction = $this->windDirection($currCol, $currRow);
+		    $actual_land = $this->getGround($curr_col, $curr_row);
+		    if ($actual_land !== null && $actual_land->getGroundType() == 1) { 
+		        $direction = $this->windDirection($curr_col, $curr_row);
 		        if ($direction !== null) {
-
 		            // Find what type of neighbor...
-					$neighbors = $this->board->getGroundNeighborOfTypes([8], $currCol, $currRow, $direction);
-
+					$neighbors = $this->board->getGroundNeighborOfTypes([$this->land['plain']], $curr_col, $curr_row, $direction);
 					// Correction 1 : Vérification du tableau non vide avant accès
 					if (!empty($neighbors)) {
 					    $first_neighbor = $neighbors[0];
-					    $wetValue = $base_water;
-					    
+					    $wet_value = $base_water;
 					    // Correction 2 : Clé unique plus robuste
 					    $coord_key = sprintf('%d-%d', $first_neighbor->col, $first_neighbor->row);
-					    $humidity_score[$coord_key] = $wetValue;
-					    
+					    $humidity_score[$coord_key] = $wet_value;
 					    // Correction 3 : Conversion coord sécurisée
-					    $wetSpots[] = $this->hexalib->coord([
+					    $wet_spots[] = $this->hexalib->coord([
 					        $first_neighbor->col, 
 					        $first_neighbor->row
 					    ], 'oddr');
 					}
-
-	            
 		        }
 		    }
 		}, false);
-
-		logMessage('Wet Spots Found '.count($wetSpots));
-
+		logMessage('Wet Spots Found '.count($wet_spots));
 		$forests = [];
-
-		foreach($wetSpots as $coord) {
+		foreach($wet_spots as $coord) {
 			$water = $humidity_score[$coord->col.'-'.$coord->row];
 			$result = true;
 			$forests[] = $coord;
-			$humidCol = $coord->col; $humidRow = $coord->row;
+			$humid_col = $coord->col; $humid_row = $coord->row;
 			while($result and $water>0) {
-				$direction = $this->windDirection($humidCol,$humidRow);
+				$direction = $this->windDirection($humid_col,$humid_row);
 				if ($direction!==null) {
-					$oddrCoord = $this->hexalib->coord([$humidCol,$humidRow],'Oddr');
-					$neighbourCoord = $this->hexalib->neighbour($oddrCoord, $direction);
-					$neighbourCoord->col = magicCylinder($neighbourCoord->col);
-					$targetLand = $this->getGround($neighbourCoord->col, $neighbourCoord->row);
-					if ($targetLand!==null) {
+					$oddr_coord = $this->hexalib->coord([$humid_col,$humid_row],'Oddr');
+					$neighbour_coord = $this->hexalib->neighbour($oddr_coord, $direction);
+					$neighbour_coord->col = magicCylinder($neighbour_coord->col);
+					$target_land = $this->getGround($neighbour_coord->col, $neighbour_coord->row);
+					if ($target_land!==null) {
 						// Next hex in the loop : 
-						$targetCoord = $this->hexalib->neighbour($oddrCoord, $direction);
-						$targetCoord->col = magicCylinder($targetCoord->col);
-						$humidCol = $targetCoord->col; $humidRow = $targetCoord->row;
-
+						$target_coord = $this->hexalib->neighbour($oddr_coord, $direction);
+						$target_coord->col = magicCylinder($target_coord->col);
+						$humid_col = $target_coord->col; $humid_row = $target_coord->row;
 						if ($coord->row<0 or $coord->row>MAX_ROW-1) {break;}
-						
 						$water = $water - 1;
-						if ($targetLand->getGroundType()==4) { $water = $water - 9; }
-						if ($targetLand->getGroundType()==3) { $water = $water - 4; }
-
-						if ($targetLand->getGroundType()==1) { $water = $water + 5; }
+						if ($target_land->getGroundType()==$this->land['mountain']) { $water = $water - 9; }
+						if ($target_land->getGroundType()==$this->land['plainHill']) { $water = $water - 4; }
+						if ($target_land->getGroundType()==$this->land['ocean']) { $water = $water + 5; }
 						if ($water>$base_water) {$water=$base_water;}
-
-						if ($targetLand->getGroundType()==8 or $targetLand->getGroundType()==3) {
-							$forests[] = $targetCoord;
+						if ($target_land->getGroundType()==$this->land['plain'] or $target_land->getGroundType()==$this->land['plainHill']) {
+							$forests[] = $target_coord;
 						}
-
 					} else {$result = false;}
 				} else {$result = false;}
-
 			}
-
 			$humidity_score[$coord->col.'-'.$coord->row] = 0;
 		}
-		
 		$this->convertGrounds($forests, $this->land['plain'], $this->land['forest']);
 		$this->convertGrounds($forests, $this->land['plainHill'], $this->land['forestHill']);
-
-		// $this->drawForests($forests, false, 30);
-
-		/*
-		$seeds = $forests;
-		$rate = 30;
-		while(count($seeds)>0) {
-			$seeds = $this->drawForests($seeds, true, $rate);	
-			$rate = $rate - 10;
-		}
-		$this->widenTerrain($this->land['forest'], $this->land['forest'], [$this->land['plain']], 1);
-		*/
-
-		// $this->widenTerrain($this->land['forest'], $this->land['forest'], [$this->land['plain']], 3);
-
+		$this->widenTerrain($this->land['forest'], $this->land['forest'], [$this->land['plain']], 3);
 		if ($save) {$this->saveWorld();}
 		return;
 	}
-
 	public function drawForests($forests, $reproduce = true, $rate_pct = 30) {
-
 		$seeds = [];
 		foreach ($forests as $forest_spot) {
 			$this->convertGround($forest_spot, 8, 2);
@@ -519,46 +535,33 @@ class WorldGenerator {
 		return $seeds;
 	}
 
-
-
-// =============================================================================
-//
-//		AFTER HERE, HAVE TO REFACTORISE
-//
-// =============================================================================
-
 	/* -------------------------------------------------------------------------
 		Rivers !
-
+			From a hill/moutain to rhe ocean...
 	------------------------------------------------------------------------- */
 	public function rivers($load = true, $save = true) {
 		if ($load) {$this->loadWorld();}
 		// Finding sources 
 		$riverables = [2, 8, 9, 10, 12];
 		$sources = [];
-		$existingRivers = [];
-		$this->board->forEachGround(function ($currCol, $currRow) use (&$sources, $riverables) {
+		$existing_rivers = [];
+		$this->board->forEachGround(function ($curr_col, $curr_row) use (&$sources, $riverables) {
 			$old_source_count = count($sources);
-			$actualLand = $this->getGround($currCol, $currRow);
-			if (isset($actualLand)) {
+			$actual_land = $this->getGround($curr_col, $curr_row);
+			if (isset($actual_land)) {
 				// Depuis à côté d'une montagne, ou d'une colline humide
-				if ($actualLand->getGroundType()==4 or $actualLand->getGroundType()==15 or $actualLand->getGroundType()==16) {
-					$sources  = array_merge($sources, $this->board->getGroundNeighborOfTypes($riverables, $currCol, $currRow));
+				if ($actual_land->getGroundType()==4 or $actual_land->getGroundType()==15 or $actual_land->getGroundType()==16) {
+					$sources  = array_merge($sources, $this->board->getGroundNeighborOfTypes($riverables, $curr_col, $curr_row));
 				}
-				if ($actualLand->getGroundType()==13) {
-					$existingRivers[] = $actualLand;
-				}
+				if ($actual_land->getGroundType()==13) { $existing_rivers[] = $actual_land; }
 			}
 		});
-
 		// Shuffling allow a better "replayability"
 		shuffle($sources);
-
 		// Filtering too close sources ! 
 		$valid_sources = [];
 		foreach ($sources as $source) {
 	        $too_close = false;
-
 	        // On compare cette source à toutes les autres sources déjà validées
 	        foreach ($valid_sources as $valid_source) {
 	            $distance = $this->hexalib->distance($valid_source->coord('oddr'), $source->coord('oddr'));
@@ -567,11 +570,10 @@ class WorldGenerator {
 	                break; // On arrête la comparaison dès qu'on trouve une source trop proche
 	            }
 	        }
-
 	        // Si on a rien trouvé, on compare néanmoins au rivieres qui existe
 	        if (!$too_close) {
 		        // On compare cette source à toutes les rivieres qui existent
-		        foreach ($existingRivers as $river) {
+		        foreach ($existing_rivers as $river) {
 		            $distance = $this->hexalib->distance($river->coord('oddr'), $source->coord('oddr'));
 		            if ($distance <= 25) {
 		                $too_close = true; // Si la distance est trop courte, on marque cette source comme trop proche
@@ -579,15 +581,10 @@ class WorldGenerator {
 		            }
 		        }
 		    }
-
 	        // Si la source n'est pas trop proche des autres, on l'ajoute aux sources valides
 	        if (!$too_close) { $valid_sources[] = $source; }
     	}
-
-    	// echo('Total Sources ok = '.count($valid_sources).' / '.count($sources));
-    	// echo(' --------------------------------------------------- ');
     	$valid_start_num = count($valid_sources);
-
 		// River Trace
 		$tries = 30;
 		while($tries>0) {
@@ -598,76 +595,58 @@ class WorldGenerator {
 			}
 		$tries --;	
 		}
-
-    	// echo('Total Sources impossible à tracer = '.count($valid_sources));
-    	// echo(' --------------------------------------------------- ');
-
 		// Loop to add a lot of new rivers
     	if (count($valid_sources)*1.5 < $valid_start_num) { $this->Rivers(false, false); }
-
     	if ($save) {$this->saveWorld();}
     	return;
 	}
-
-	// 0=E 1=NE 2=NW 3=W 4=SW 5=SE 
 	public function drawRiver($coord) {
 		$finished = false;
-		$finalRiverPath = [];
+		$final_river_path = [];
 		$riverables = [2, 8, 9, 10, 12];
 		// On simule une origine :
 		$possible_prev = $this->board->getGroundNeighborOfTypes([4, 15, 16], $coord->col, $coord->row);
 		$old_coord = $possible_prev[array_rand($possible_prev)]->coord('oddr');
 		// La boucle !
 		while(!$finished) {
-			$finalRiverPath[] = $coord;
+			$final_river_path[] = $coord;
 			// Ocean/Riviere touche = fini !
 			if ($this->board->getGroundNeighborOfTypes([1, 13], $coord->col, $coord->row)) { $finished = true; break;}
-
-			$originDirection = $this->hexalib->cubeDirection($coord, $old_coord);
+			$origin_direction = $this->hexalib->cubeDirection($coord, $old_coord);
 			$candidates = [];
     		for ($i = 2; $i <= 4; $i++) {
-        		$nextDirection = ($originDirection + $i) % 6;
+        		$nextDirection = ($origin_direction + $i) % 6;
         		$choosen_ary = $this->board->getGroundNeighborOfTypes($riverables, $coord->col, $coord->row, $nextDirection);
-
-					if (!empty($choosen_ary)) {
-					    $choosen = $choosen_ary[0];
-
-        		//if (isset($choosen)) {
+				if (!empty($choosen_ary)) {
+					$choosen = $choosen_ary[0];
         			// Si le candidat a 2+ voisin riviere on l'exclus :
-        			$riversNeighbors = $this->board->getGroundNeighborOfTypes([13], $choosen->col, $choosen->row);
-        			if (count($riversNeighbors)<=1) {
+        			$rivers_neighbors = $this->board->getGroundNeighborOfTypes([13], $choosen->col, $choosen->row);
+        			if (count($rivers_neighbors)<=1) {
 						// Le candidat n'a pas le droit d'être un voisin immediat de ce que l'on a tracé, à l'exception des 2 derniers 
-		        		$testPath = array_slice($finalRiverPath, 0, -2);
-		        		if (!$this->isCoordNeighborOfArray($choosen->coord('oddr'), $testPath)) {
+		        		$test_path = array_slice($final_river_path, 0, -2);
+		        		if (!$this->isCoordNeighborOfArray($choosen->coord('oddr'), $test_path)) {
 		        			$candidates[] = $choosen;
 		        		}
 					}
         		}
     		}
-						
 			if (empty($candidates)) { $finished = false; break;}
-
 			$old_coord = $coord;
 			$coord = $candidates[array_rand($candidates)]->coord('oddr');
 		}
-
 		$all_path_neighbours = [];
-
-		if ($finished and count($finalRiverPath)>15) {
-			
-			foreach($finalRiverPath as $eachcoord) {
+		if ($finished and count($final_river_path)>15) {
+			foreach($final_river_path as $eachcoord) {
 				// La riviere
 				$this->setGroundFromCoord($eachcoord, 13); 
 				// Les voisins :
 				$neighbors = $this->board->getGroundNeighborOfTypes([10, 9, 2, 8], $eachcoord->col, $eachcoord->row);
-
 				// On ne note les voisins de notre chemin de revieire qu'une fois unique !
 				foreach($neighbors as $each_ground) {
 					$key = $each_ground->col.'-'.$each_ground->row;
 					$all_path_neighbours[$key] = $each_ground;
 				}
 			}
-
 			foreach($all_path_neighbours as $each_ground) {
 				// Plaines -> Marecages 1/6
 				if (rand(1,6)<=1) {  $this->convertGround($each_ground->coord('oddr'), 8, 11); }
@@ -679,17 +658,10 @@ class WorldGenerator {
 					$this->convertGround($each_ground->coord('oddr'), 2, 11);						
 				}
 			}
-
 			return true;
 		}
 		return false;
 	}
-
-	function isCoordInArray($coord, $array) {
-	    foreach ($array as $item) { if ($coord->col == $item->col and $coord->row == $item->row) { return true; } }
-	    return false;
-	}
-
 	function isCoordNeighborOfArray($coord, $array) {
 	    foreach ($array as $item) {
 	    	if (!empty($this->hexalib->commonNeighbours($item, $coord))) { return true; } 
@@ -697,12 +669,10 @@ class WorldGenerator {
 	    return false;
 	}
 
-
 	/* -------------------------------------------------------------------------
 		Hot & Cold zone
 
 	------------------------------------------------------------------------- */
-
 	public function temperature($row) {
 		// HOT PLACES !
 		if ($row>$this->climate_lines['tropic_north'] and $row<$this->climate_lines['tropic_south']) { return 'hot';  }
@@ -710,101 +680,87 @@ class WorldGenerator {
 			if (rand(0,1)==1) { return 'hot'; }
 			return 'temperate';
 		}
-
 		// Frozen Places (must be before cold as we have generic '<' comparaison)
 		if ($row<3 or $row>(MAX_ROW-4)) { return 'frozen'; }
 		if ($row==3 or $row==(MAX_ROW-4)) {
 			if (rand(0,1)==1) { return 'frozen'; }
 			return 'cold';
 		}
-
 		// Cold places 
 		if ($row>$this->climate_lines['antarctic_circle'] or $row<$this->climate_lines['arctic_circle']) { return 'cold';  }
 		if ($row==$this->climate_lines['antarctic_circle'] or $row==$this->climate_lines['arctic_circle']) { 
 			if (rand(0,1)==1) { return 'cold'; }
 			return 'temperate';
 		}
-
 		// Anyway, temperate...
 		return 'temperate';
 	}
-
 	public function latitudeClimate($load = true, $save = true) {
-
 		if ($load) {$this->loadWorld();}
-
 		// Adapting plains (and oceans) to current climate !
-		$this->board->forEachGround(function ($currCol, $currRow) {
-		    $actualLand = $this->getGround($currCol, $currRow);
-		    if ($actualLand !== null) { 
-		    	$temperature = $this->temperature($actualLand->row);
+		$this->board->forEachGround(function ($curr_col, $curr_row) {
+		    $actual_land = $this->getGround($curr_col, $curr_row);
+		    if ($actual_land !== null) { 
+		    	$temperature = $this->temperature($actual_land->row);
 		    	if ($temperature=='hot') {
-		    		$this->convertGround($actualLand->coord('oddr'), 8, 10);
-		    		$this->convertGround($actualLand->coord('oddr'), 2, 9);
-		    		$this->convertGround($actualLand->coord('oddr'), 3, 17);
-		    		$this->convertGround($actualLand->coord('oddr'), 15, 16);
+		    		$this->convertGround($actual_land->coord('oddr'), 8, 10);
+		    		$this->convertGround($actual_land->coord('oddr'), 2, 9);
+		    		$this->convertGround($actual_land->coord('oddr'), 3, 17);
+		    		$this->convertGround($actual_land->coord('oddr'), 15, 16);
 		    	}
 		    	if ($temperature=='temperate') {
 		    		// Nothing...
 		    	}
 		    	if ($temperature=='cold') {
-		    		$this->convertGround($actualLand->coord('oddr'), 8, 12);
-		    		$this->convertGround($actualLand->coord('oddr'), 3, 14);
+		    		$this->convertGround($actual_land->coord('oddr'), 8, 12);
+		    		$this->convertGround($actual_land->coord('oddr'), 3, 14);
 		    		if (rand(0,1)==1) {
-		    			$this->convertGround($actualLand->coord('oddr'), 2, 12);
-		    			$this->convertGround($actualLand->coord('oddr'), 15, 14);
+		    			$this->convertGround($actual_land->coord('oddr'), 2, 12);
+		    			$this->convertGround($actual_land->coord('oddr'), 15, 14);
 		    		}
 		    	}
 				if ($temperature=='frozen') {
-					$this->convertGround($actualLand->coord('oddr'), 8, 6);
-					$this->convertGround($actualLand->coord('oddr'), 12, 6);
-					$this->convertGround($actualLand->coord('oddr'), 3, 18);
-					$this->convertGround($actualLand->coord('oddr'), 2, 12);
-					if (rand(0,1)==1) {$this->convertGround($actualLand->coord('oddr'), 1, 6);}
+					$this->convertGround($actual_land->coord('oddr'), 8, 6);
+					$this->convertGround($actual_land->coord('oddr'), 12, 6);
+					$this->convertGround($actual_land->coord('oddr'), 3, 18);
+					$this->convertGround($actual_land->coord('oddr'), 2, 12);
+					if (rand(0,1)==1) {$this->convertGround($actual_land->coord('oddr'), 1, 6);}
 				}
 		    }
 		}, false);
-
 		// Les bords Arides sont modifes en fonction de l'humidite
-		$this->board->forEachGround(function ($currCol, $currRow) {
-		    $actualLand = $this->getGround($currCol, $currRow);
-
-		    if ($actualLand !== null) {
+		$this->board->forEachGround(function ($curr_col, $curr_row) {
+		    $actual_land = $this->getGround($curr_col, $curr_row);
+		    if ($actual_land !== null) {
 		    	// If is a Savanna
-		    	if ($actualLand->getGroundType() == 10) {
+		    	if ($actual_land->getGroundType() == 10) {
 			        // Check Humdity neigbors
-			        $jungleNeighbors = $this->board->getGroundNeighborOfTypes([9,16], $currCol, $currRow);
-			        if (!empty($jungleNeighbors)) { 
-			            $this->setGround($currCol, $currRow, 8);  // Convert savanna to fertile plain
-
+			        $jungle_neighbors = $this->board->getGroundNeighborOfTypes([9,16], $curr_col, $curr_row);
+			        if (!empty($jungle_neighbors)) { 
+			            $this->setGround($curr_col, $curr_row, 8);  // Convert savanna to fertile plain
 			            // Finding savana close for random variations 
-			            $savanaNeighbors = $this->board->getGroundNeighborOfTypes([10], $currCol, $currRow);
-			            if (!empty($savanaNeighbors)) {
-			                $neighbour_to_convert = $savanaNeighbors[array_rand($savanaNeighbors)]; // Récupérer un voisin au hasard
+			            $savana_neighbors = $this->board->getGroundNeighborOfTypes([10], $curr_col, $curr_row);
+			            if (!empty($savana_neighbors)) {
+			                $neighbour_to_convert = $savana_neighbors[array_rand($savana_neighbors)]; // Récupérer un voisin au hasard
 			                $this->convertGround($neighbour_to_convert->coord('oddr'), 10, 8);  // Conversion du voisin
 			            }
 			        }
 		    	}
-
 		    	//A forest can't be close to banquise...
-		    	if ($actualLand->getGroundType() == 15 or $actualLand->getGroundType() == 2) {
+		    	if ($actual_land->getGroundType() == 15 or $actual_land->getGroundType() == 2) {
 					// Check Banquise neigbors
-				    $banquiseNeighbors = $this->board->getGroundNeighborOfTypes([6,18], $currCol, $currRow);
-				    if (!empty($banquiseNeighbors)) { 
+				    $banquise_neighbors = $this->board->getGroundNeighborOfTypes([6,18], $curr_col, $curr_row);
+				    if (!empty($banquise_neighbors)) { 
 				    	// Convert forest to toundra
-				    	$this->convertGround($actualLand->coord('oddr'), 15, 14);
-				    	$this->convertGround($actualLand->coord('oddr'), 2, 12);
+				    	$this->convertGround($actual_land->coord('oddr'), 15, 14);
+				    	$this->convertGround($actual_land->coord('oddr'), 2, 12);
 				    }
 		    	}
-		    	
 		    }
 		}, false);
-
 		if ($save) {$this->saveWorld();}
 		return;
 	}
-
-
 
 	/* -------------------------------------------------------------------------
 		Tectonic plates are recognizable as  oceans deeps, or mountains chains
@@ -813,209 +769,103 @@ class WorldGenerator {
 		- then spots are linked by lines : mountains or oceans or moutain&oceans
 
 	------------------------------------------------------------------------- */
-	public function addSommet($sommets, $key, $coord) {
-		$sommets[$key]=[];
-		$sommets[$key]['coord']=$coord;
-		$sommets[$key]['key']=$key;
-		$sommets[$key]['pos']='';
-		if ($coord->row==0) {$sommets[$key]['pos']='north';}
-		if ($coord->row>=MAX_ROW-1) {$sommets[$key]['pos']='south';}
-		return $sommets;
-	}
-
-	public function addJunction(&$junctions, $sommet1key, $sommet2key) {
-		if ($sommet1key==$sommet2key) {return;}
-		$key1 = $sommet1key.'>'.$sommet2key;
-		$key2 = $sommet2key.'>'.$sommet1key;
-		if (isset($junctions[$key1])) {return $key1;}
-		if (isset($junctions[$key2])) {return $key2;}
-		$junctions[$key1] = [];
-	    $junctions[$key1]['s1'] = $sommet1key;
-	    $junctions[$key1]['s2'] = $sommet2key;
-		return $key1;
-	}
-	
-	public function deleteJunction(&$junctions, &$sommets, $key) {
-		if (!isset($junctions[$key])) {return false;}
-		$sommet1 = $junctions[$key]['s1'];
-		$sommet2 = $junctions[$key]['s2'];
-		for($i=1; $i<=8; $i++){
-			if (isset($sommets[$sommet1]['j'.$i]) and $sommets[$sommet1]['j'.$i]==$key) 
-				{ unset($sommets[$sommet1]['j'.$i]); }
-			if (isset($sommets[$sommet2]['j'.$i]) and $sommets[$sommet2]['j'.$i]==$key) 
-				{ unset($sommets[$sommet2]['j'.$i]); }			
-		}
-		unset($junctions[$key]);
-		return true;
-	}
-
-	public function createFail(&$sommets, &$junctions, $first_key, $junc_origin) {
-
-		// Initialize the first node (vertex) and the previous junction origin
-		$last_sommet = $sommets[$first_key];
-		$prev_origin = $junc_origin;
-		$notend=true;
-		$failSpots = [];
-		$first_loop = true;
-
-    	// Directions map: each junction has its possible choices and reverse direction
-		// 1 2 3
-		// 4 + 5
-		// 6 7 8
-	    $directions = [
-	        'j1' => ['choices' => ['j5', 'j7', 'j8'], 'reverse' => 'j8'],
-	        'j2' => ['choices' => ['j6', 'j7', 'j8'], 'reverse' => 'j7'],
-	        'j3' => ['choices' => ['j6', 'j7', 'j4'], 'reverse' => 'j6'],
-	        'j4' => ['choices' => ['j3', 'j5', 'j8'], 'reverse' => 'j5'],
-	        'j5' => ['choices' => ['j1', 'j4', 'j6'], 'reverse' => 'j4'],
-	        'j6' => ['choices' => ['j2', 'j3', 'j5'], 'reverse' => 'j3'],
-	        'j7' => ['choices' => ['j1', 'j2', 'j3'], 'reverse' => 'j2'],
-	        'j8' => ['choices' => ['j1', 'j2', 'j4'], 'reverse' => 'j1'],
-	    ];
-
-		while ($notend) {
-
-			$failSpots[] = $last_sommet['coord'];
-
-			// reaching north or south, break the loop :
-			if ($last_sommet['pos']!='' and !$first_loop) { break; }
-
-        	// Get the possible choices for the next junction based on the previous origin
-			$choices = $directions[$prev_origin]['choices'];
-			// Filter valid choices that exist in the current node
-			$real_choices = array_filter($choices, function ($choice) use ($last_sommet) { return isset($last_sommet[$choice]); });
-
-			if (empty($real_choices)) {$notend = false; break;}
-
-			// If there's exactly one valid choice, just move to that node
-			if (count($real_choices)==1) {
-				$notend = false; 
-            	// The loop doesn't break, we just wait to reach the spot without crossing it
-            	// to avoid creating a 'cross' in the mapap
-			}
-
-			$dest = $real_choices[array_rand($real_choices)];
-			$junckey = $last_sommet[$dest];
-			// Determine the reverse direction for the next move
-			$prev_origin = $directions[$dest]['reverse'];
-	    	$lastkey = $last_sommet['key'];
-        	// Move to the next node based on the current key
-        	// If the current node matches s1, move to s2, otherwise to s1
-        	$s1 = $junctions[$junckey]['s1'];
-        	$s2 = $junctions[$junckey]['s2'];
-			$last_sommet = ($lastkey === $s1) ? $sommets[$s2] : $sommets[$s1];
-			
-        	// Delete the junction from the list after passing through it
-	    	$this->deleteJunction($junctions, $sommets, $junckey);
-	    	$first_loop = false;
-		}
-		return $failSpots;
-	}
-
 	public function createTectonicPlates($load = true, $save = true, $size = null) {
-
 		//allowLogs();
 		if ($load) {$this->loadWorld();}
 		// continent size
 		if ($size==null) { $size = round(MAX_ROW/10); }
-		
     	// Map limits
     	$max_row_limit = MAX_ROW - 1;
     	$max_col_limit = MAX_COL - 1;
-    	$randFactor = 0.2;
-
+    	$rand_factor = 0.2;
     	// Generate base spots
     	$spots = [];
     	// Row 0 :
-		$baseCol = randomAround($size, $randFactor);
-		while ($baseCol < MAX_COL) {
-		    $spots[] = $this->hexalib->coord([$baseCol, 0], 'Oddr');
-		    $baseCol += randomAround($size, 0.2);
+		$base_col = randomAround($size, $rand_factor);
+		while ($base_col < MAX_COL) {
+		    $spots[] = $this->hexalib->coord([$base_col, 0], 'Oddr');
+		    $base_col += randomAround($size, 0.2);
 		}
 	    // Row Max :
-		$baseCol = randomAround($size, $randFactor);
-		while ($baseCol < MAX_COL) {
-		    $spots[] = $this->hexalib->coord([$baseCol, MAX_ROW-1], 'Oddr');
-		    $baseCol += randomAround($size, 0.2);
+		$base_col = randomAround($size, $rand_factor);
+		while ($base_col < MAX_COL) {
+		    $spots[] = $this->hexalib->coord([$base_col, MAX_ROW-1], 'Oddr');
+		    $base_col += randomAround($size, 0.2);
 		}
 	    // Col 0 & Col max :
-		$baseRow = randomAround($size, $randFactor);
-		while ($baseRow < MAX_ROW) {
-		    $spots[] = $this->hexalib->coord([0, $baseRow], 'Oddr');
-		    $spots[] = $this->hexalib->coord([MAX_COL-1, $baseRow], 'Oddr');
-		    $baseRow += randomAround($size, 0.2);
+		$base_row = randomAround($size, $rand_factor);
+		while ($base_row < MAX_ROW) {
+		    $spots[] = $this->hexalib->coord([0, $base_row], 'Oddr');
+		    $spots[] = $this->hexalib->coord([MAX_COL-1, $base_row], 'Oddr');
+		    $base_row += randomAround($size, 0.2);
 		}
-
 		// Generate "grid" spots
-		$nbSpots = MAX_ROW/$size * MAX_COL/$size;
+		$nb_spots = MAX_ROW/$size * MAX_COL/$size;
 		$tries = 100;
-		while($nbSpots>0 and $tries>0) {
-			$newCol = mt_rand(0, MAX_COL-1);
-			$newRow = mt_rand(0, MAX_ROW-1);
-			$newCoord = $this->hexalib->coord([$newCol, $newRow], 'Oddr');
-			$spiralZone = $this->hexalib->spiral($newCoord, round($size/1.5));
-			if (!$this->hexalib->coordsIntersect($spots, $spiralZone)) {
-        		$spots[] = $newCoord;
-        		$nbSpots--;
+		while($nb_spots>0 and $tries>0) {
+			$new_col = mt_rand(0, MAX_COL-1);
+			$new_row = mt_rand(0, MAX_ROW-1);
+			$new_coord = $this->hexalib->coord([$new_col, $new_row], 'Oddr');
+			$spiral_zone = $this->hexalib->spiral($new_coord, round($size/1.5));
+			if (!$this->hexalib->coordsIntersect($spots, $spiral_zone)) {
+        		$spots[] = $new_coord;
+        		$nb_spots--;
     		} else {
     			$tries --;
     		}
 		}
-
 		// Do line beetween spots, closest, never draw twice a line
 		$lines = 3;
-		$alreadyDrawn = [];
-		$linesFound = [];
-		foreach ($spots as $i => $eachSpot) {
+		$already_drawn = [];
+		$lines_found = [];
+		foreach ($spots as $i => $each_spot) {
 		    $distances = [];
-		    foreach ($spots as $j => $otherSpot) {
+		    foreach ($spots as $j => $other_spot) {
 		        if ($i === $j) continue;
 		        $distances[] = [
 		            'index' => $j,
-		            'spot'  => $otherSpot,
-		            'dist'  => $this->hexalib->distance($eachSpot, $otherSpot),
+		            'spot'  => $other_spot,
+		            'dist'  => $this->hexalib->distance($each_spot, $other_spot),
 		        ];
 		    }
 		    usort($distances, fn($a, $b) => $a['dist'] <=> $b['dist']);
-		    $linesDrawn = 0;
+		    $lines_drawn = 0;
 		    $k = 0;
-		    while ($linesDrawn < $lines && isset($distances[$k])) {
+		    while ($lines_drawn < $lines && isset($distances[$k])) {
 		        $j = $distances[$k]['index'];
 		        $key = min($i, $j) . '|' . max($i, $j);
-		        $is_i_border = ($eachSpot->row === 0 || $eachSpot->row === MAX_ROW - 1);
+		        $is_i_border = ($each_spot->row === 0 || $each_spot->row === MAX_ROW - 1);
 		        $is_j_border = ($spots[$j]->row === 0 || $spots[$j]->row === MAX_ROW - 1);
 		        // Exclure liaison bord ↔ bord
 		        if ($is_i_border && $is_j_border) { $k++; continue; }
-		        if (!isset($alreadyDrawn[$key])) {
-		            $linesFound[] = [$eachSpot, $spots[$j]];
-		            $alreadyDrawn[$key] = true;
-		            $linesDrawn++;
+		        if (!isset($already_drawn[$key])) {
+		            $lines_found[] = [$each_spot, $spots[$j]];
+		            $already_drawn[$key] = true;
+		            $lines_drawn++;
 		        }
 		        $k++;
 		    }
 		}
-	
 		// All lines are now drawn
-		$mountainQuota = 2;
-		$mountainCount = []; // $mountainCount[$spotId] = nb de lignes montagne
-		foreach ($linesFound as $line) {
+		$mountain_quota = 2;
+		$mountain_count = []; // $mountain_count[$spotId] = nb de lignes montagne
+		foreach ($lines_found as $line) {
 		    [$a, $b] = $line;
-		    $idA = $a->col . '|' . $a->row;
-		    $idB = $b->col . '|' . $b->row;
+		    $id_a = $a->col . '|' . $a->row;
+		    $id_b = $b->col . '|' . $b->row;
 		    // Choisir aléatoirement le type de terrain
-		    $typeKey = (mt_rand(0, 1) === 0) ? 'ocean' : 'mountain';
+		    $type_key = (mt_rand(0, 1) === 0) ? 'ocean' : 'mountain';
 		    // Vérifie quota montagne UNIQUEMENT
-		    if ($typeKey === 'mountain') {
-		        $countA = $mountainCount[$idA] ?? 0;
-		        $countB = $mountainCount[$idB] ?? 0;
-		        if ($countA >= $mountainQuota || $countB >= $mountainQuota) { continue; }
-		        $mountainCount[$idA] = $countA + 1;
-		        $mountainCount[$idB] = $countB + 1;
+		    if ($type_key === 'mountain') {
+		        $count_a = $mountain_count[$id_a] ?? 0;
+		        $count_b = $mountain_count[$id_b] ?? 0;
+		        if ($count_a >= $mountain_quota || $count_b >= $mountain_quota) { continue; }
+		        $mountain_count[$id_a] = $count_a + 1;
+		        $mountain_count[$id_b] = $count_b + 1;
 		    }
 		    // Trace la ligne quel que soit le type
-		    $this->drawNoisyLine($this->land[$typeKey], $a, $b);
+		    $this->drawNoisyLine($this->land[$type_key], $a, $b);
 		}
-
 		// Widen the lines
 		$this->widenTerrain($this->land['ocean'], $this->land['ocean'], $this->land, 6);
 		$this->widenTerrain($this->land['mountain'], $this->land['mountain'], $this->land, 1);
@@ -1023,129 +873,40 @@ class WorldGenerator {
 		// Attention les plaines grattent les oceans et colline
 		// j'ai donc augmenté ces valeurs à 6 & 4 au lieu de 5 & 3 qui été ok
 		$this->widenTerrain($this->land['plain'], $this->land['plain'], [$this->land['ocean']], 1);
-
 		// il faut effacer les case oceans isolées
 		$this->deleteSmallerThan('ocean', 20, 'plain');
-
 		// Spot free space in ocean to set islands
-		$oceanId = $this->land['ocean'];
 		$radius = 8;
-		$baseSpots = [];
-
-		$this->board->forEachGround(function ($col, $row) use ($oceanId, $radius, &$baseSpots) {
+		$base_spots = [];
+		$this->board->forEachGround(function ($col, $row) use ($radius, &$base_spots) {
 		    $ground = $this->getGround($col, $row);
-		    if (!$ground || $ground->getGroundType() !== $oceanId) { return; }
+		    if (!$ground || $ground->getGroundType() !== $this->land['ocean']) { return; }
 		    $center = $this->hexalib->coord([$col, $row], 'Oddr');
 		    $coords = $this->hexalib->spiral($center, $radius);
-		    $allSame = true;
+		    $all_same = true;
 		    foreach ($coords as $coord) {
 		        $coord = $this->hexalib->convert($coord, 'Oddr');
 		        $neighbor = $this->getGround($coord->col, $coord->row);
-		        if (!$neighbor || $neighbor->getGroundType() !== $oceanId) {
-		            $allSame = false;
+		        if (!$neighbor || $neighbor->getGroundType() !== $this->land['ocean']) {
+		            $all_same = false;
 		            break;
 		        }
 		    }
-		    if ($allSame) { $baseSpots[] = $center; }
+		    if ($all_same) { $base_spots[] = $center; }
 		});
-
 		// Dessiner les îles : couches plaine > colline > montagne, centre en désert
-		$splatRadius = round($radius / 2);
-		foreach ($baseSpots as $spot) {
-		    $plainPatch = $this->hexalib->noisySpiral($spot, round($splatRadius*1));
-		    $hillPatch = $this->hexalib->noisySpiral($spot, round($splatRadius * 0.6));
-		    $mountainPatch = $this->hexalib->noisySpiral($spot, round($splatRadius * 0.3));
-		    $this->setGroundsFromCoords($plainPatch,$this->land['plain']);
-		    $this->setGroundsFromCoords($hillPatch,$this->land['plainHill']);
-		    $this->setGroundsFromCoords($mountainPatch,$this->land['mountain']);
+		$splat_radius = round($radius / 2);
+		foreach ($base_spots as $spot) {
+		    $plain_patch = $this->hexalib->noisySpiral($spot, round($splat_radius*1));
+		    $hill_patch = $this->hexalib->noisySpiral($spot, round($splat_radius * 0.6));
+		    $mountain_patch = $this->hexalib->noisySpiral($spot, round($splat_radius * 0.3));
+		    $this->setGroundsFromCoords($plain_patch,$this->land['plain']);
+		    $this->setGroundsFromCoords($hill_patch,$this->land['plainHill']);
+		    $this->setGroundsFromCoords($mountain_patch,$this->land['mountain']);
 		}
-
 		if ($save) {$this->saveWorld();}
 		return;
 	}
-
-//------------------------------------------------------------------------------
-
-
-
-public function deleteSmallerThan($terrainName, $minSize, $newTerrainName) {
-    $landTypeId = $this->land[$terrainName] ?? null;
-    $newLandTypeId = $this->land[$newTerrainName] ?? null;
-    
-    if ($landTypeId === null || $newLandTypeId === null) {
-        error_log("Terrain name not found: $terrainName or $newTerrainName");
-        return;
-    }
-
-    $visited = [];
-    $areasToProcess = [];
-
-    // Trouver toutes les cases du terrain spécifié
-    $this->board->forEachGround(function ($col, $row) use ($landTypeId, &$visited, &$areasToProcess) {
-        $key = "$col,$row";
-        if (isset($visited[$key])) {
-            return;
-        }
-        
-        $ground = $this->getGround($col, $row);
-        if ($ground && $ground->getGroundType() === $landTypeId) {
-            $area = $this->findConnectedArea($col, $row, $landTypeId, $visited);
-            if (!empty($area)) {
-                $areasToProcess[] = $area;
-            }
-        }
-    });
-
-    // Traiter chaque région trouvée
-    foreach ($areasToProcess as $area) {
-        if (count($area) < $minSize) {
-            foreach ($area as $coord) {
-                list($col, $row) = $coord;
-                $this->setGround($col, $row, $newLandTypeId);
-            }
-        }
-    }
-}
-
-private function findConnectedArea($startCol, $startRow, $landTypeId, &$visited) {
-    $area = [];
-    $queue = [[$startCol, $startRow]];
-    
-    while (!empty($queue)) {
-        list($col, $row) = array_shift($queue);
-        $key = "$col,$row";
-        
-        if (isset($visited[$key])) {
-            continue;
-        }
-        
-        $visited[$key] = true;
-        $area[] = [$col, $row];
-        
-        // Obtenir tous les voisins du même type sans conversion hexagonale
-        $neighbors = $this->board->getGroundNeighborOfTypes([$landTypeId], $col, $row);
-        
-        foreach ($neighbors as $neighbor) {
-            // Supposons que $neighbor est un objet Ground avec des méthodes getCol()/getRow()
-            try {
-                $nCol = $neighbor->col;
-                $nRow = $neighbor->row;
-                
-                if (!isset($visited["$nCol,$nRow"])) {
-                    $queue[] = [$nCol, $nRow];
-                }
-            } catch (Exception $e) {
-                error_log("Error processing neighbor: " . $e->getMessage());
-                continue;
-            }
-        }
-    }
-    
-    return $area;
-}
-
-//------------------------------------------------------------------------------
-
 
 }
 ?>
