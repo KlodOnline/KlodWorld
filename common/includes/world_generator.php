@@ -169,6 +169,40 @@ class WorldGenerator {
 		$coords_line = $this->hexalib->generateNoisyLine($coord1, $coord2, 4, 10);
 	    $this->setGroundsFromCoords($coords_line, $terrain);		
 	}
+	public function widenTerrain(int $land_type_id, int $land_type_to_do, array $land_to_crush, int $thickness) {
+		// widen a specifi terrain type, with randomness, onto an array of terrain to crush
+		$visited = [];
+		$current = [];
+		// Get all interesting grounds
+		$this->board->forEachGround(function ($col, $row) use (&$current, $land_type_id) {
+		    $ground = $this->getGround($col, $row);
+		    if ($ground && $ground->getGroundType() === $land_type_id) { $current[] = [$col, $row]; }
+		});
+		for ($n = $thickness; $n > 0; $n--) {
+		    $next = [];
+		    foreach ($current as [$col, $row]) {
+		        $neighbors = $this->board->getGroundNeighborOfTypes([$land_type_id, $land_type_to_do], $col, $row, null, true);
+		        foreach ($neighbors as $neighbor) {
+		            $nCol = $neighbor->col;
+		            $nRow = $neighbor->row;
+		            $key = "$nCol|$nRow";
+		            if (isset($visited[$key])) continue;
+		            // Probabilité décroissante :
+		            $chances = round(100 * $n / ($thickness + 1) );
+		            if (mt_rand(1,100)<$chances) {
+						$neighbor_type = $neighbor->getGroundType();
+						// Not allowed to crush ? Don't do it !
+						if (in_array($neighbor_type, $land_to_crush, true)) { 
+							$this->setGround($neighbor->col, $neighbor->row, $land_type_to_do);
+						}
+		                $next[] = [$nCol, $nRow];
+		                $visited[$key] = true;
+		            }
+		        }
+		    }
+		    $current = $next;
+		}
+	}
 
 	/* -------------------------------------------------------------------------
 	    BREAKS TERRAIN MONOTONY
@@ -314,42 +348,30 @@ class WorldGenerator {
 		return;
 	}
 	public function updateCoastlines(): void {
-	    $oceanTypes = [$this->land['ocean']];
+	    $ocean_types = [$this->land['ocean']];
 	    $water_types = [$this->land['ocean'], $this->land['coast']];
-	    $coastType = $this->land['coast'];
-	    $this->board->forEachGround(function ($col, $row) use ($oceanTypes, $water_types, $coastType) {
+	    $coast_type = $this->land['coast'];
+	    $this->board->forEachGround(function ($col, $row) use ($ocean_types, $water_types, $coast_type) {
 	        $ground = $this->getGround($col, $row);
 	        // not ocean ? Exit.
-	        if (!$ground || !in_array($ground->getGroundType(), $oceanTypes, true)) { return; }
+	        if (!$ground || !in_array($ground->getGroundType(), $ocean_types, true)) { return; }
 	        if ($this->board->hasNeighborOfTypes($col, $row, $water_types, null, true, 2)) {
-	        	$this->setGround($col, $row, $coastType);
+	        	$this->setGround($col, $row, $coast_type);
 	        }
 	    });
 	}
-
-
-// =============================================================================
-//
-//		AFTER HERE, HAVE TO REFACTORISE
-//
-// =============================================================================
-
 
 	/* -------------------------------------------------------------------------
 		Wind & Humdity & Consequences !
 
 		La ça va être super touchy, vu qu'on veux que des nuages qui se "chargent"
 		en humidité, se "dechargent" sur les terre, en fonction de comment le 
-		vent les a poussé. Une terre humide favorise les forets et les rivieres
-		Mais de la pluie sur des rivieres, favorise les marecages !
-
+		vent les a poussé. Une terre humide favorise les forets !
 		Hexalib Cardinal conv :
 		Testé :
 		0=E 1=NE 2=NW 3=W 4=SW 5=SE 
-
 	------------------------------------------------------------------------- */
 	public function windDirection($col, $row) {
-
 		// Zone arctique :
 		if ($row<=$this->climate_lines['arctic_circle'] ) { return 4; }
 		// Zone Temperee nord :
@@ -372,26 +394,16 @@ class WorldGenerator {
 		if ($row>=($this->climate_lines['tropic_south']+$temperateZoneSize*2) and $row<($this->climate_lines['antarctic_circle'])) { return 0; }
 		// Zone antarctique :
 		if ($row>=$this->climate_lines['antarctic_circle'] ) { return 2; }
-
 		return;
 	}
-
-
 	public function humidity($load = true, $save = true) {
-
-		// allowLogs();
-
 		if ($load) {$this->loadWorld();}
-		
-
-		// $base_water = round(MAX_COL/10);
+		$base_water = round(MAX_ROW/10);
 		$base_water = 30;
 
 		$humidity_score = [];
 		$wetSpots = [];
-
 		logMessage('Finding Wet Spot');
-
 		// First : Finding "wetSpots", places where rains helps forests (plains
 		// under oceans winds...)
 		$this->board->forEachGround(function ($currCol, $currRow) use (&$humidity_score, &$wetSpots, &$base_water) {
@@ -471,24 +483,29 @@ class WorldGenerator {
 			$humidity_score[$coord->col.'-'.$coord->row] = 0;
 		}
 		
+		$this->convertGrounds($forests, $this->land['plain'], $this->land['forest']);
+		$this->convertGrounds($forests, $this->land['plainHill'], $this->land['forestHill']);
 
-		$this->drawForests($forests, false, 30);
+		// $this->drawForests($forests, false, 30);
 
+		/*
 		$seeds = $forests;
 		$rate = 30;
 		while(count($seeds)>0) {
 			$seeds = $this->drawForests($seeds, true, $rate);	
 			$rate = $rate - 10;
 		}
+		$this->widenTerrain($this->land['forest'], $this->land['forest'], [$this->land['plain']], 1);
+		*/
+
+		// $this->widenTerrain($this->land['forest'], $this->land['forest'], [$this->land['plain']], 3);
 
 		if ($save) {$this->saveWorld();}
-
-		// disableLogs();
-
 		return;
 	}
 
 	public function drawForests($forests, $reproduce = true, $rate_pct = 30) {
+
 		$seeds = [];
 		foreach ($forests as $forest_spot) {
 			$this->convertGround($forest_spot, 8, 2);
@@ -503,6 +520,12 @@ class WorldGenerator {
 	}
 
 
+
+// =============================================================================
+//
+//		AFTER HERE, HAVE TO REFACTORISE
+//
+// =============================================================================
 
 	/* -------------------------------------------------------------------------
 		Rivers !
@@ -994,12 +1017,12 @@ class WorldGenerator {
 		}
 
 		// Widen the lines
-		$this->widenTerrain('ocean', 'ocean', 6);
-		$this->widenTerrain('mountain', 'mountain', 1);
-		$this->widenTerrain('mountain', 'plainHill', 4);
+		$this->widenTerrain($this->land['ocean'], $this->land['ocean'], $this->land, 6);
+		$this->widenTerrain($this->land['mountain'], $this->land['mountain'], $this->land, 1);
+		$this->widenTerrain($this->land['mountain'], $this->land['plainHill'], $this->land, 3);
 		// Attention les plaines grattent les oceans et colline
 		// j'ai donc augmenté ces valeurs à 6 & 4 au lieu de 5 & 3 qui été ok
-		$this->widenTerrain('plain', 'plain', 1);
+		$this->widenTerrain($this->land['plain'], $this->land['plain'], [$this->land['ocean']], 1);
 
 		// il faut effacer les case oceans isolées
 		$this->deleteSmallerThan('ocean', 20, 'plain');
@@ -1123,35 +1146,6 @@ private function findConnectedArea($startCol, $startRow, $landTypeId, &$visited)
 
 //------------------------------------------------------------------------------
 
-	public function widenTerrain(string $landType, string $landTypeToDo, int $width) {
-		$visited = []; // Pour éviter les doublons
-		$current = [];
-		$landTypeId = $this->land[$landType];
-		$this->board->forEachGround(function ($col, $row) use (&$current, $landTypeId) {
-		    $ground = $this->getGround($col, $row);
-		    if ($ground && $ground->getGroundType() === $landTypeId) { $current[] = [$col, $row]; }
-		});
-		for ($n = $width; $n > 0; $n--) {
-		    $next = [];
-		    foreach ($current as [$col, $row]) {
-		        $neighbors = $this->board->getGroundNeighborOfTypes([$this->land[$landType], $this->land[$landTypeToDo]], $col, $row, null, true);
-		        foreach ($neighbors as $neighbor) {
-		            $nCol = $neighbor->col;
-		            $nRow = $neighbor->row;
-		            $key = "$nCol|$nRow";
-		            if (isset($visited[$key])) continue;
-		            // Probabilité décroissante :
-		            $chances = round(100 * $n / ($width + 1) );
-		            if (mt_rand(1,100)<$chances) {
-		                $this->setGround($neighbor->col, $neighbor->row, $this->land[$landTypeToDo]);
-		                $next[] = [$nCol, $nRow];
-		                $visited[$key] = true;
-		            }
-		        }
-		    }
-		    $current = $next;
-		}
-	}
 
 }
 ?>
