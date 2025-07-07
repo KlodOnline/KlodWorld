@@ -31,10 +31,7 @@ class Ground extends Locatable {
         $coord = $hexalib->coord([$this->col, $this->row], 'Oddr'); // Utilisation de Axial pour obtenir la coordonnée
 
         // Convertir ensuite en Cube si nécessaire
-        if ($coordType == 'Cube') {
-            return $hexalib->convert($coord, 'Cube');
-        }
-
+        if ($coordType == 'Cube') { return $hexalib->convert($coord, 'Cube'); }
         // Retourner en coordonnées Axial si c'est ce que l'on souhaite
         return $coord;
     }

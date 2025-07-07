@@ -162,7 +162,17 @@ class Hexalib {
 	    $y += $height / 2;
 	    return [$x, $y];
 	}
-
+	public function uniqueCoords(array $coords): array {
+	    $unique_map = [];
+	    foreach ($coords as $coord) { $unique_map[$coord->toString()] ??= $coord; }
+	    return array_values($unique_map);
+	}
+	public function coordsIntersect(array $list1, array $list2): bool  {
+	    $keys = [];
+	    foreach ($list1 as $coord) { $keys[$coord->toString()] = true; }
+	    foreach ($list2 as $coord) { if (isset($keys[$coord->toString()])) { return true; } }
+	    return false;
+	}
 	// Mathematical function ---------------------------------------------------
 	public function cubeDistance(Cube $a, Cube $b): int {
     	return (int) ((abs($a->x - $b->x) + abs($a->y - $b->y) + abs($a->z - $b->z)) / 2);
@@ -369,39 +379,6 @@ class Hexalib {
 	    }
 	    return array_slice($spiral, 0, $index);
 	}
-/*	
-	public function noisySpiral(HexCoordinate $center, int $radius): array {
-	    $oddr_center = $this->convert($center, 'oddr');
-	    $visited = [];
-	    $result = [];
-	    $frontier = [];
-	    // Always include center
-	    $center_key = "{$oddr_center->col},{$oddr_center->row}";
-	    $visited[$center_key] = true;
-	    $result[] = $oddr_center;
-	    if ($radius <= 0) { return $result; }
-	    $frontier = [$oddr_center];
-	    $base_probability = 80; // 80% base probability for first ring
-	    for ($step = 1; $step <= $radius; $step++) {
-	        $new_frontier = [];
-	        $current_probability = 100 - (int)round($step * $base_probability / $radius);
-	        foreach ($frontier as $current) {
-	            foreach ($this->ring($current, 1) as $neighbor) {
-	                $neighbor_key = "{$neighbor->col},{$neighbor->row}";
-	                if (isset($visited[$neighbor_key])) { continue; }
-	                $visited[$neighbor_key] = true;
-	                if (rand(0, 100) <= $current_probability) {
-	                    $result[] = $neighbor;
-	                    $new_frontier[] = $neighbor;
-	                }
-	            }
-	        }
-	        $frontier = $new_frontier;
-	        if (empty($frontier)) { break; }
-	    }
-	    return $result;
-	}
-*/
 	public function noisySpiral(HexCoordinate $center, int $radius): array {
 	    if ($radius < 0) { throw new InvalidArgumentException("Radius must be positive"); }
 	    $oddr_center = $this->convert($center, 'oddr');

@@ -7,47 +7,39 @@
 
 ============================================================================= */
 class WorldGenerator {
-
     private $board;
     private $hexalib;
 	private $attribution;
-
-	private array $climateLines;
-    private array $land;
-    private array $landIdToName;
+	private array $climate_lines = [];
+	private array $land = [];
+	private array $land_id_to_name = [];
 
 	/***************************************************************************
 	    Constructor: Initializes
 	***************************************************************************/
     public function __construct(Board $board) {
         $this->board = $board;
-        $this->hexalib = new Hexalib();
-
+		$this->hexalib = $hexalib ?? new Hexalib();
         $polar_lat = round((MAX_ROW - 1) / 14);
         $tropic_lat = round((MAX_ROW - 1) / 8);
         $equator = round((MAX_ROW - 1) / 2);
-
-        $this->climateLines = [
+        $this->climate_lines = [
 			'equator' => $equator,
 	    	'arctic_circle' =>  0 + $polar_lat,
 	    	'tropic_north' => $equator - $tropic_lat,
 	    	'tropic_south' => $equator + $tropic_lat,
 	    	'antarctic_circle' => (MAX_ROW - 1) - $polar_lat
 		];
-
 		$ruleManager = new XMLObjectManager();
 		$lands = $ruleManager->allItems('lands');
-
 		$this->land = [];
 		foreach ($lands as $item) {
 		    $name = (string) $item->__get('name');
 		    $id   = (int) $item->__get('id');
-
 		    $this->land[$name] = $id;
 		    // Not sure if usefull, will have to check in the end
-		    $this->landIdToName[$id] = $name; 
+		    $this->land_id_to_name[$id] = $name; 
 		}
-
     }
 
 	/***************************************************************************
@@ -56,20 +48,18 @@ class WorldGenerator {
     public function loadWorld() {
     	$this->board->loadGrounds();
     }
-
     public function saveWorld() {
     	$this->board->saveCollection('Ground', false);
     }
-
     public function FullCreation() {
     	// each of those functions are also directly usable by Front, for testing purpose
     	$this->clearWorld(true, false);
     	$this->createTectonicPlates(false, false, null);
-    	$this->Humidity(false, false);
-    	$this->LessBoring(false, false);
-    	$this->LatitudeClimate(false, false);
-    	$this->Rivers(false, false);
-    	$this->DesertsCoasts(false, true);
+    	$this->humidity(false, false);
+    	$this->lessBoring(false, false);
+    	$this->latitudeClimate(false, false);
+    	$this->rivers(false, false);
+    	$this->desertsCoasts(false, true);
     }
 
 	/***************************************************************************
@@ -79,249 +69,226 @@ class WorldGenerator {
 		$ground = $this->board->getGround((int) $col, (int) $row);
 		return $ground;
 	}
-	public function setGround($col, $row, $type) {
-		// Outside vertical limits (ignoring)
-    	if ($row < 0 || $row >= MAX_ROW) { return; }
-		// Outside horizontal limits (wrapping)
-		if ($col>=MAX_COL) { $col = $col - MAX_COL; }
-		if ($col<0) { $col = MAX_COL + $col; }
-		// Then, setting the ground type
-		$this->board->setGroundTypeByCoords((int) $col, (int) $row, (int) $type);
+	public function setGround(int $col, int $row, int $type): void {
+	    if ($row < 0 || $row >= MAX_ROW) return;
+	    $col = ($col % MAX_COL + MAX_COL) % MAX_COL; // Wrap propre
+	    $this->board->setGroundTypeByCoords($col, $row, $type);
 	}
 	/* -------------------------------------------------------------------------
 	    More way to use setGround functions
 	------------------------------------------------------------------------- */
-	public function setGroundFromCoord($coord, $type) {
-		$coord = $this->hexalib->convert($coord, 'Oddr');
-		$this->setGround($coord->col, $coord->row, $type);
+	public function setGroundFromCoord(HexCoordinate $coord, int $type): void {
+	    if ($coord instanceof Oddr) { $oddr = $coord; }
+	    else { $oddr = $this->hexalib->convert($coord, 'Oddr'); }
+	    $this->setGround($oddr->col, $oddr->row, $type);
 	}
-	public function setGroundsFromCoords($coords, $type) {
-		// ALWAYS filter non unique coords.
-		$uniqueCoords = uniqueCoords($coords);
-		foreach($uniqueCoords as $coord) {
-			$this->setGroundFromCoord($coord, $type);
-		}
+	public function setGroundsFromCoords(array $coords, int $type): void {
+	    foreach ($this->hexalib->uniqueCoords($coords) as $coord) {
+	        $this->setGroundFromCoord($coord, $type);
+	    }
 	}
-	public function setSpiralGroundsFromCoords($coords, $type, $radius) {
-		$allCoords = [];
-		foreach($coords as $coord) {
-			$spiralCoords = $this->hexalib->spiral($coord,$radius);
-			$allCoords = array_merge($allCoords, $spiralCoords);
-		}
-		$this->setGroundsFromCoords($allCoords, $type);
+	public function setSpiralGroundsFromCoords(array $coords, int $type, int $radius): void {
+	    $all_coords = [];
+	    foreach ($coords as $coord) {
+	        $spiral_coords = $this->hexalib->spiral($coord, $radius);
+	        array_push($all_coords, ...$spiral_coords); // Faster than array_merge
+	    }
+	    $this->setGroundsFromCoords($all_coords, $type);
 	}
-	public function setGroundSpiral($col, $row, $radius, $type) {
-		$coord = $this->hexalib->coord([$col,$row],'Oddr');
-		$coords = $this->hexalib->spiral($coord,$radius);
-		$this->setGroundsFromCoords($coords, $type);
+	public function setGroundSpiral(int $col, int $row, int $radius, int $type): void {
+	    $coord = $this->hexalib->coord(['col' => $col, 'row' => $row], 'Oddr');
+	    $this->setSpiralGroundsFromCoords([$coord], $type, $radius);
 	}
 
 	/* -------------------------------------------------------------------------
 	    Converting Grounds from array
 	------------------------------------------------------------------------- */
-	public function convertGround($coord, $fromLands, $toLand) { 
-		// If not an array, force it (comaptibility purpose)
-		if (!is_array($fromLands)) {$fromLands = [$fromLands];}
-		$target = $this->getGround($coord->col, $coord->row);
-		if ($target!=null) {
-			if (in_array($target->getGroundType(), $fromLands)) {
-				$this->setGroundFromCoord($coord, $toLand);
-				return true;
-			}
-		}
-		return false;
+	public function convertGround(HexCoordinate $coord, array|int $from_lands, int $to_land): bool {
+	    $from_lands = is_array($from_lands) ? $from_lands : [$from_lands];
+	    $ground = $this->getGround($coord->col, $coord->row);
+	    if ($ground === null) { return false; }
+	    $ground_type = $ground->getGroundType();
+	    if (in_array($ground_type, $from_lands, true)) { // Strict comparison
+	        $this->setGroundFromCoord($coord, $to_land);
+	        return true;
+	    }
+	    return false;
 	}
-	public function convertGrounds($coords, $fromLands, $toLand) {
-		$result_count = 0;
-		// ALWAYS filter non unique coords.
-		$uniqueCoords = uniqueCoords($coords);
-		foreach($uniqueCoords as $coord) {
-			$result = $this->convertGround($coord, $fromLands, $toLand);
-			if ($result==true) {$result_count++;}
-		}
-		if ($result_count==count($uniqueCoords)) {return true;}
-		return false;
+	public function convertGrounds(array $coords, array|int $from_lands, int $to_land): void {
+	    $from_lands = is_array($from_lands) ? $from_lands : [$from_lands];
+	    foreach ($this->hexalib->uniqueCoords($coords) as $coord) {
+	        $ground = $this->getGround($coord->col, $coord->row);
+	        if ($ground !== null && in_array($ground->getGroundType(), $from_lands, true)) {
+	            $this->setGroundFromCoord($coord, $to_land);
+	        }
+	    }
 	}
-	public function convertGroundSpiral($coord, $radius, $fromLands, $toLand) {
-		$coords = $this->hexalib->spiral($coord,$radius);
-		return $this->convertGrounds($coords, $fromLands, $toLand);
+	public function convertGroundSpiral( HexCoordinate $center, int $radius, array|int $from_lands, int $to_land ): void {
+	    $this->convertGrounds( $this->hexalib->spiral($center, $radius), $from_lands, $to_land );
 	}
 
 	/* -------------------------------------------------------------------------
 	    Clear the world (full plains)
 	------------------------------------------------------------------------- */
-	public function clearWorld($load = true, $save = true) {
-		if ($load) {$this->loadWorld();}
-		logMessage('Loading : NB Grounds = '.$this->board->nbGrounds()) ;
-		// En cas de monde vierge, il faut creer les grounds :
-	    for ($currRow = 0; $currRow < MAX_ROW; $currRow++) {
-	        for ($currCol = 0; $currCol < MAX_COL; $currCol++) {
-	            $this->setGround($currCol, $currRow, $this->land['plain']);
+	public function clearWorld(bool $load = true, bool $save = true): void {
+		logMessage('Clearing World ...');
+	    if ($load) $this->loadWorld();
+	    $all_coords = $this->generateAllMapCoords();
+	    $this->setGroundsFromCoords($all_coords, $this->land['plain']);
+	    $this->removeOutOfBoundsGrounds();
+	    if ($save) $this->saveWorld();
+		logMessage('Clearing done !');
+	}
+	private function generateAllMapCoords(): array {
+	    $coords = [];
+	    for ($row = 0; $row < MAX_ROW; $row++) {
+	        for ($col = 0; $col < MAX_COL; $col++) {
+	            $coords[] = $this->hexalib->coord([$col, $row], 'Oddr');
 	        }
 	    }
-	    logMessage('Setting Default : NB Grounds = '.$this->board->nbGrounds()) ;
-	    logMessage('Board Cleaning...');
-		// Ensuite il faut virer ce qui depasse :
-		$this->board->forEachGround(function ($col, $row) {
-		    if ($col < 0 || $col >= MAX_COL || $row < 0 || $row >= MAX_ROW) {
-		    	$obj = $this->board->getGround($col, $row);
-		        $this->board->deleteFromCollection($obj);
-		    }
-		});
-		logMessage('Erasing too much : NB Grounds = '.$this->board->nbGrounds()) ;
-		if ($save) {$this->saveWorld();}
+	    return $coords;
+	}
+	private function removeOutOfBoundsGrounds(): void {
+	    $to_delete = [];
+	    $this->board->forEachGround(function ($col, $row) use (&$to_delete) {
+	        if ($col < 0 || $col >= MAX_COL || $row < 0 || $row >= MAX_ROW) {
+	            $to_delete[] = $this->board->getGround($col, $row);
+	        }
+	    });
+	    foreach ($to_delete as $ground) { $this->board->deleteFromCollection($ground); }
 	}
 
 	/* -------------------------------------------------------------------------
 	    Drawing Functions !!!!
 	------------------------------------------------------------------------- */
-	public function lineDrawer($test_mode, $terrain, $spotlines, $drawFunc, $size=3, $shift=0) {
-
-		// $maxspl = count($spotlines);
-		logMessage('Drawing Lines ... ');
-
-		foreach($spotlines as $key => $spotline) {
-
-			$n = count($spotline);
-			$mid = floor( $n / 2); // Position du milieu
-			$maxSize = 5;         // Taille maximale
-			$prev_spot = null;    // Init au début
-
-			foreach($spotline as $index => $spot){
-            	if ($prev_spot === null) { $prev_spot = $spot; continue; }
-
-	    		$shifted_coord1 = clone $prev_spot;
-				$shifted_coord1->col += $shift;
-	    		$shifted_coord1->row += $shift;
-
-				$shifted_coord2 = clone $spot;
-	    		$shifted_coord2->col += $shift;
-	    		$shifted_coord2->row += $shift;
-
-				if ($index <= $mid) { $size = ($maxSize / $mid) * $index; }
-		    	else { $size = ($maxSize / ($n - $mid - 1)) * ($n - $index - 1); }
-		    	$size=round($size);
-
-	    		if ($test_mode) { $this->drawSimpleLine($terrain, $shifted_coord1, $shifted_coord2); }
-	    		else { $this->$drawFunc($shifted_coord1, $shifted_coord2, $size); }
-	    		$prev_spot = $spot;
-			}
-			unset($prev_spot);
-		}
-		return;
-	}
-
 	public function drawSimpleLine($terrain, $coord1, $coord2) {
 		$coords_line = $this->hexalib->drawLine($coord1, $coord2);
 	    $this->setGroundsFromCoords($coords_line, $terrain);
 	}
-
 	public function drawNoisyLine($terrain, $coord1, $coord2) {
 		$coords_line = $this->hexalib->generateNoisyLine($coord1, $coord2, 4, 10);
 	    $this->setGroundsFromCoords($coords_line, $terrain);		
 	}
 
-
-
 	/* -------------------------------------------------------------------------
-		Manage Boring zone :
-			- Find places where there is only 1 type of lands in a radius of 
-			5 hexs
-			- Swap the central hex to something specific with random "splat"
-	
-	Exemple :
-		- a splat of plain in forest & viceversa
-		- add mountains, and hill arounds
-		- generate a little moutain splat + river
-		- 
-			- Retry start -> ends, stops if needed.
-
+	    BREAKS TERRAIN MONOTONY
+	    
+	    Targets uniform zones of:
+	    - Ocean/forest/plains within 8-hex radius
+	    
+	    Actions:
+	    - Forest zones → Adds mountains/swamps
+	    - Plains zones → Adds forests/mountain ranges
+	    - Ocean zones → No modification (configurable)
+	    
+	    Splat System:
+	    - Core radius: 3-5 hexes 
+	    - Nested terrain layers
+	    - Random pattern selection
 	------------------------------------------------------------------------- */
-	public function LessBoring($load = true, $save = true) {
-		if ($load) {$this->loadWorld();}
-		// Considering possible boring as 2, 4, 8 (Ocean, Forest, Plains)
-		// Because "LessBoring" Happens after "Humidity" and before "LattitudeClimate"
-		$possibleBoring = [2, 4, 8];
-		$possibleReplacement = [1, 2, 3, 8, 11];
-		// 6 = small / 10 = medium
-		$radius = 8;
-		$this->board->forEachGround(function ($currCol, $currRow) use ($possibleBoring, $radius, $possibleReplacement) {
-			$actualLand = $this->getGround($currCol, $currRow);
-			$groundType = $actualLand->getGroundType();
-			if (in_array($groundType, $possibleBoring)) {
-				$center = $this->hexalib->coord([$currCol, $currRow], 'Oddr');
-				$coords = $this->hexalib->spiral($center, $radius);
-				$allSame = true;
-				foreach ($coords as $testCoord) {
-					$testCoord = $this->hexalib->convert($testCoord, 'Oddr');
-					$other = $this->getGround($testCoord->col, $testCoord->row);
-					// if ($other->getGroundType() != $groundType) {
-					if (!$other || $other->getGroundType() != $groundType) {	
-						$allSame = false;
-						break;
-					}
-				}
-				if ($allSame) {
-					// A splat
-					$splatRadius = rand((int)($radius/1.2), (int)($radius/2.5));
-					// $patch = $this->hexalib->noisySpiral($center, $splatRadius);
-
-					// According to the current groundtype we don't mess
-					if ($groundType==$this->land['forest']) {
-						// We can have a splat of hills or swamps, or a Sea.
-						$alternatives = ['mountain', 'swamps'];
-						$replacement = $alternatives[array_rand($alternatives)];
-						if ($replacement=='mountain') {
-		    				$hillPatch = $this->hexalib->noisySpiral($center, round($splatRadius ));
-		    				$mountainPatch = $this->hexalib->noisySpiral($center, round($splatRadius * 0.5));
-		    				$this->setGroundsFromCoords($hillPatch, $this->land['forestHill']);
-		    				$this->setGroundsFromCoords($mountainPatch,$this->land['mountain']);
-						} else {
-		    				$swampPatch = $this->hexalib->noisySpiral($center, round($splatRadius * 0.6));
-						    $this->setGroundsFromCoords($swampPatch,$this->land['swamp']);
-						}
-						
-					}
-
-					// Plains
-					if ($groundType==8) {
-						// We can have a saplt of forest, hill+mountain, of forest+hill+moutain
-						$alternatives = ['mountain', 'forest', 'forestHill'];
-						$replacement = $alternatives[array_rand($alternatives)];
-						if ($replacement=='forest') {
-							$forestPatch = $this->hexalib->noisySpiral($center, round($splatRadius ));
-							$this->setGroundsFromCoords($forestPatch, $this->land['forest']);
-						}
-						if ($replacement=='mountain') {
-		    				$hillPatch = $this->hexalib->noisySpiral($center, round($splatRadius ));
-		    				$mountainPatch = $this->hexalib->noisySpiral($center, round($splatRadius * 0.5));
-		    				$this->setGroundsFromCoords($hillPatch, $this->land['plainHill']);
-		    				$this->setGroundsFromCoords($mountainPatch,$this->land['mountain']);
-						}
-
-						if ($replacement=='forestHill') {
-							$forestPatch = $this->hexalib->noisySpiral($center, round($splatRadius ));
-		    				$hillPatch = $this->hexalib->noisySpiral($center, round($splatRadius * 0.5 ));
-		    				$mountainPatch = $this->hexalib->noisySpiral($center, round($splatRadius * 0.25));
-		    				$this->setGroundsFromCoords($forestPatch, $this->land['forest']);
-		    				$this->setGroundsFromCoords($hillPatch,$this->land['forestHill']);
-		    				$this->setGroundsFromCoords($mountainPatch,$this->land['mountain']);
-						}
-
-					}
-
-					// Mountain
-					if ($groundType==4) {
-
-					}				
-				}
-			}
-		});
-
-		// Ici, filtrer les oceans de moins de 80 cases => rien.
-		if ($save) {$this->saveWorld();}
-		return;
+	public function lessBoring(bool $load = true, bool $save = true): void {
+	    if ($load) { $this->loadWorld(); }
+	    $boring_radius = 8;
+	    $boring_types = [
+	        $this->land['ocean'],
+	        $this->land['forest'], 
+	        $this->land['plain']
+	    ];
+	    $this->board->forEachGround(function ($currCol, $currRow) use ($boring_types, $boring_radius) {
+	        $ground = $this->getGround($currCol, $currRow);
+	        $ground_type = $ground->getGroundType();
+	        if (!in_array($ground_type, $boring_types)) { return; }
+	        $center = $this->hexalib->coord([$currCol, $currRow], 'Oddr');
+	        if ($this->isUniformArea($center, $ground_type, $boring_radius)) {
+	            $this->applyTerrainVariation($center, $ground_type, $boring_radius);
+	        }
+	    });
+	    if ($save) { $this->saveWorld(); }
 	}
+	private function isUniformArea(Oddr $center, int $expected_type, int $radius): bool {
+	    $coords = $this->hexalib->spiral($center, $radius);
+	    foreach ($coords as $coord) {
+	        $oddr = $this->hexalib->convert($coord, 'Oddr');
+	        $neighbor = $this->getGround($oddr->col, $oddr->row);
+	        if (!$neighbor || $neighbor->getGroundType() !== $expected_type) {
+	            return false;
+	        }
+	    }
+	    return true;
+	}
+	private function applyTerrainVariation(Oddr $center, int $ground_type, int $radius): void {
+	    $splat_radius = rand((int)($radius/1.2), (int)($radius/2.5));
+	    $variations = [
+	        $this->land['forest'] => function() use ($center, $splat_radius) {
+	            $this->applyForestVariation($center, $splat_radius);
+	        },
+	        $this->land['plain'] => function() use ($center, $splat_radius) {
+	            $this->applyPlainsVariation($center, $splat_radius);
+	        }
+	    ];
+	    if (isset($variations[$ground_type])) { $variations[$ground_type](); }
+	}
+	private function applyForestVariation(Oddr $center, int $radius): void {
+	    $choice = rand(0, 1) ? 'mountain' : 'swamp';
+	    if ($choice === 'mountain') {
+	        $this->setGroundsFromCoords(
+	            $this->hexalib->noisySpiral($center, $radius),
+	            $this->land['forestHill']
+	        );
+	        $this->setGroundsFromCoords(
+	            $this->hexalib->noisySpiral($center, (int)($radius * 0.5)),
+	            $this->land['mountain']
+	        );
+	    } else {
+	        $this->setGroundsFromCoords(
+	            $this->hexalib->noisySpiral($center, (int)($radius * 0.6)),
+	            $this->land['swamp']
+	        );
+	    }
+	}
+	private function applyPlainsVariation(Oddr $center, int $radius): void {
+	    $variants = [
+	        'forest' => fn() => $this->setGroundsFromCoords(
+	            $this->hexalib->noisySpiral($center, $radius),
+	            $this->land['forest']
+	        ),
+	        'mountain' => fn() => $this->mountainVariation($center, $radius),
+	        'forest_hill' => fn() => $this->forestHillVariation($center, $radius)
+	    ];
+	    $variant = array_rand($variants);
+	    $variants[$variant]();
+	}
+	private function mountainVariation(Oddr $center, int $radius): void  {
+	    $this->setGroundsFromCoords(
+	        $this->hexalib->noisySpiral($center, $radius),
+	        $this->land['plainHill']
+	    );
+	    $this->setGroundsFromCoords(
+	        $this->hexalib->noisySpiral($center, (int)($radius * 0.5)),
+	        $this->land['mountain']
+	    );
+	}
+	private function forestHillVariation(Oddr $center, int $radius): void {
+	    $this->setGroundsFromCoords(
+	        $this->hexalib->noisySpiral($center, $radius),
+	        $this->land['forest']
+	    );
+	    $this->setGroundsFromCoords(
+	        $this->hexalib->noisySpiral($center, (int)($radius * 0.5)),
+	        $this->land['forestHill']
+	    );
+	    $this->setGroundsFromCoords(
+	        $this->hexalib->noisySpiral($center, (int)($radius * 0.25)),
+	        $this->land['mountain']
+	    );
+	}
+
+
+// =============================================================================
+//
+//		AFTER HERE, HAVE TO REFACTORISE
+//
+// =============================================================================
 
 	/* -------------------------------------------------------------------------
 		Desert, Coast, and various changes
@@ -330,27 +297,25 @@ class WorldGenerator {
 	public function DesertsCoasts($load = true, $save = true) {
 		if ($load) {$this->loadWorld();}
 
-		$desert_sources = [];
-		
+		$this->updateCoastlines();
+
 		$this->board->forEachGround(function ($currCol, $currRow) {
-			$actualLand = $this->getGround($currCol, $currRow);
-
-			if (isset($actualLand)) {
-				$coord = $actualLand->coord('oddr');
-
-				// Drawing coasts - +2 from lands
-				if (count($this->board->getGroundNeighborOfTypes([1, 5], $coord->col, $coord->row, null, true))>0
-					and ($actualLand->getGroundType()==1 or $actualLand->getGroundType()==5)) {
-					$this->convertGroundSpiral($coord, 1, [1], 5);
-				}
-
+			$actual_ground = $this->getGround($currCol, $currRow);
+			if (isset($actual_ground)) {
+				$coord = $actual_ground->coord('Oddr');
 				// Drawing deserts / anything @$desert_factor from savanna borders
 				$desert_factor = 3;
-				if ($actualLand->getGroundType()==10 or $actualLand->getGroundType()==17) {
+				if ($actual_ground->getGroundType()==$this->land['savana'] or $actual_ground->getGroundType()==$this->land['savanaHill']) {
 					// If nothing in a radius of X is something else than savana, can be a desert.
-					if (count($this->board->getGroundNeighborOfTypes([10, 17, 7, 19, 4], $coord->col, $coord->row, null, true, $desert_factor))<1) {
-						$this->convertGround($coord, [10], 7);	// 7
-						$this->convertGround($coord, [17], 19);	// 19
+					if (count($this->board->getGroundNeighborOfTypes([
+						$this->land['savana'],
+						$this->land['savanaHill'],
+						$this->land['desert'],
+						$this->land['desertHill'],
+						$this->land['mountain'],
+						], $coord->col, $coord->row, null, true, $desert_factor))<1) {
+						$this->convertGround($coord, [$this->land['savana']], $this->land['desert']);
+						$this->convertGround($coord, [$this->land['savanaHill']], $this->land['desertHill']);
 					}
 				}
 
@@ -359,8 +324,30 @@ class WorldGenerator {
 
 		if ($save) {$this->saveWorld();}
 		return;
-
 	}
+
+public function updateCoastlines(): void {
+    $oceanTypes = [$this->land['ocean']];
+    $water_types = [$this->land['ocean'], $this->land['coast']];
+    $coastType = $this->land['coast'];
+
+    $this->board->forEachGround(function ($col, $row) use ($oceanTypes, $water_types, $coastType) {
+        $ground = $this->getGround($col, $row);
+
+        // not ocean ? Exit.
+        if (!$ground || !in_array($ground->getGroundType(), $oceanTypes, true)) { return; }
+        // coast ? Exit
+        // if ($ground->getGroundType() === $coastType) { return; }
+
+        if ($this->board->hasNeighborOfTypes($col, $row, $water_types, null, true, 2)) {
+        	$this->setGround($col, $row, $coastType);
+        }
+
+    });
+}
+
+
+
 
 	/* -------------------------------------------------------------------------
 		Wind & Humdity & Consequences !
@@ -378,33 +365,33 @@ class WorldGenerator {
 	public function windDirection($col, $row) {
 
 		// Zone arctique :
-		if ($row<=$this->climateLines['arctic_circle'] ) { return 4; }
+		if ($row<=$this->climate_lines['arctic_circle'] ) { return 4; }
 		// Zone Temperee nord :
-		$temperateZoneSize = ($this->climateLines['tropic_north'] - $this->climateLines['arctic_circle'])/3;
-		if ($row>$this->climateLines['arctic_circle'] and $row<($this->climateLines['arctic_circle']+$temperateZoneSize)) { return 0; }
-		if ($row>=($this->climateLines['arctic_circle']+$temperateZoneSize) and $row<($this->climateLines['arctic_circle']+$temperateZoneSize*2)) { return 1; }
-		if ($row>=($this->climateLines['arctic_circle']+$temperateZoneSize*2) and $row<($this->climateLines['tropic_north'])) { return northDirection($row); }
+		$temperateZoneSize = ($this->climate_lines['tropic_north'] - $this->climate_lines['arctic_circle'])/3;
+		if ($row>$this->climate_lines['arctic_circle'] and $row<($this->climate_lines['arctic_circle']+$temperateZoneSize)) { return 0; }
+		if ($row>=($this->climate_lines['arctic_circle']+$temperateZoneSize) and $row<($this->climate_lines['arctic_circle']+$temperateZoneSize*2)) { return 1; }
+		if ($row>=($this->climate_lines['arctic_circle']+$temperateZoneSize*2) and $row<($this->climate_lines['tropic_north'])) { return northDirection($row); }
 		// Zone tropicale nord :
-		$tropicalZoneSize = ($this->climateLines['equator'] - $this->climateLines['tropic_north'])/3;
-		if ($row>=$this->climateLines['tropic_north'] and $row<($this->climateLines['tropic_north']+$tropicalZoneSize)) { return southDirection($row); }
-		if ($row>=($this->climateLines['tropic_north']+$tropicalZoneSize) and $row<($this->climateLines['tropic_north']+$tropicalZoneSize*2)) { return 4; }
-		if ($row>=($this->climateLines['tropic_north']+$tropicalZoneSize*2) and $row<=($this->climateLines['equator'])) { return 3; }
+		$tropicalZoneSize = ($this->climate_lines['equator'] - $this->climate_lines['tropic_north'])/3;
+		if ($row>=$this->climate_lines['tropic_north'] and $row<($this->climate_lines['tropic_north']+$tropicalZoneSize)) { return southDirection($row); }
+		if ($row>=($this->climate_lines['tropic_north']+$tropicalZoneSize) and $row<($this->climate_lines['tropic_north']+$tropicalZoneSize*2)) { return 4; }
+		if ($row>=($this->climate_lines['tropic_north']+$tropicalZoneSize*2) and $row<=($this->climate_lines['equator'])) { return 3; }
 		// Zone tropicale sud :
-		if ($row>=$this->climateLines['equator'] and $row<($this->climateLines['equator']+$tropicalZoneSize)) { return 3; }
-		if ($row>=($this->climateLines['equator']+$tropicalZoneSize) and $row<($this->climateLines['equator']+$tropicalZoneSize*2)) { return 2; }
-		if ($row>=($this->climateLines['equator']+$tropicalZoneSize*2) and $row<($this->climateLines['tropic_south'])) { return northDirection($row); }
+		if ($row>=$this->climate_lines['equator'] and $row<($this->climate_lines['equator']+$tropicalZoneSize)) { return 3; }
+		if ($row>=($this->climate_lines['equator']+$tropicalZoneSize) and $row<($this->climate_lines['equator']+$tropicalZoneSize*2)) { return 2; }
+		if ($row>=($this->climate_lines['equator']+$tropicalZoneSize*2) and $row<($this->climate_lines['tropic_south'])) { return northDirection($row); }
 		// Zone Temperee sud :
-		if ($row>=$this->climateLines['tropic_south'] and $row<($this->climateLines['tropic_south']+$temperateZoneSize)) { return southDirection($row); }
-		if ($row>=($this->climateLines['tropic_south']+$temperateZoneSize) and $row<($this->climateLines['tropic_south']+$temperateZoneSize*2)) { return 5; }
-		if ($row>=($this->climateLines['tropic_south']+$temperateZoneSize*2) and $row<($this->climateLines['antarctic_circle'])) { return 0; }
+		if ($row>=$this->climate_lines['tropic_south'] and $row<($this->climate_lines['tropic_south']+$temperateZoneSize)) { return southDirection($row); }
+		if ($row>=($this->climate_lines['tropic_south']+$temperateZoneSize) and $row<($this->climate_lines['tropic_south']+$temperateZoneSize*2)) { return 5; }
+		if ($row>=($this->climate_lines['tropic_south']+$temperateZoneSize*2) and $row<($this->climate_lines['antarctic_circle'])) { return 0; }
 		// Zone antarctique :
-		if ($row>=$this->climateLines['antarctic_circle'] ) { return 2; }
+		if ($row>=$this->climate_lines['antarctic_circle'] ) { return 2; }
 
 		return;
 	}
 
 
-	public function Humidity($load = true, $save = true) {
+	public function humidity($load = true, $save = true) {
 
 		// allowLogs();
 
@@ -430,13 +417,27 @@ class WorldGenerator {
 
 		        $direction = $this->windDirection($currCol, $currRow);
 		        if ($direction !== null) {
+
 		            // Find what type of neighbor...
-					$neighbor = $this->board->getGroundNeighborOfTypes([8], $currCol, $currRow, $direction);
-		            if ($neighbor !== null ) {
-		            	$wetValue = $base_water;
-		                $humidity_score[$neighbor->col . '-' . $neighbor->row] = $wetValue;
-		                $wetSpots[] = $neighbor->coord('oddr');
-		            }
+					$neighbors = $this->board->getGroundNeighborOfTypes([8], $currCol, $currRow, $direction);
+
+					// Correction 1 : Vérification du tableau non vide avant accès
+					if (!empty($neighbors)) {
+					    $first_neighbor = $neighbors[0];
+					    $wetValue = $base_water;
+					    
+					    // Correction 2 : Clé unique plus robuste
+					    $coord_key = sprintf('%d-%d', $first_neighbor->col, $first_neighbor->row);
+					    $humidity_score[$coord_key] = $wetValue;
+					    
+					    // Correction 3 : Conversion coord sécurisée
+					    $wetSpots[] = $this->hexalib->coord([
+					        $first_neighbor->col, 
+					        $first_neighbor->row
+					    ], 'oddr');
+					}
+
+	            
 		        }
 		    }
 		}, false);
@@ -521,7 +522,7 @@ class WorldGenerator {
 		Rivers !
 
 	------------------------------------------------------------------------- */
-	public function Rivers($load = true, $save = true) {
+	public function rivers($load = true, $save = true) {
 		if ($load) {$this->loadWorld();}
 		// Finding sources 
 		$riverables = [2, 8, 9, 10, 12];
@@ -617,8 +618,12 @@ class WorldGenerator {
 			$candidates = [];
     		for ($i = 2; $i <= 4; $i++) {
         		$nextDirection = ($originDirection + $i) % 6;
-        		$choosen = $this->board->getGroundNeighborOfTypes($riverables, $coord->col, $coord->row, $nextDirection);
-        		if (isset($choosen)) {
+        		$choosen_ary = $this->board->getGroundNeighborOfTypes($riverables, $coord->col, $coord->row, $nextDirection);
+
+					if (!empty($choosen_ary)) {
+					    $choosen = $choosen_ary[0];
+
+        		//if (isset($choosen)) {
         			// Si le candidat a 2+ voisin riviere on l'exclus :
         			$riversNeighbors = $this->board->getGroundNeighborOfTypes([13], $choosen->col, $choosen->row);
         			if (count($riversNeighbors)<=1) {
@@ -691,8 +696,8 @@ class WorldGenerator {
 
 	public function temperature($row) {
 		// HOT PLACES !
-		if ($row>$this->climateLines['tropic_north'] and $row<$this->climateLines['tropic_south']) { return 'hot';  }
-		if ($row==$this->climateLines['tropic_north'] or $row==$this->climateLines['tropic_south']) { 
+		if ($row>$this->climate_lines['tropic_north'] and $row<$this->climate_lines['tropic_south']) { return 'hot';  }
+		if ($row==$this->climate_lines['tropic_north'] or $row==$this->climate_lines['tropic_south']) { 
 			if (rand(0,1)==1) { return 'hot'; }
 			return 'temperate';
 		}
@@ -705,8 +710,8 @@ class WorldGenerator {
 		}
 
 		// Cold places 
-		if ($row>$this->climateLines['antarctic_circle'] or $row<$this->climateLines['arctic_circle']) { return 'cold';  }
-		if ($row==$this->climateLines['antarctic_circle'] or $row==$this->climateLines['arctic_circle']) { 
+		if ($row>$this->climate_lines['antarctic_circle'] or $row<$this->climate_lines['arctic_circle']) { return 'cold';  }
+		if ($row==$this->climate_lines['antarctic_circle'] or $row==$this->climate_lines['arctic_circle']) { 
 			if (rand(0,1)==1) { return 'cold'; }
 			return 'temperate';
 		}
@@ -715,7 +720,7 @@ class WorldGenerator {
 		return 'temperate';
 	}
 
-	public function LatitudeClimate($load = true, $save = true) {
+	public function latitudeClimate($load = true, $save = true) {
 
 		if ($load) {$this->loadWorld();}
 
@@ -940,7 +945,7 @@ class WorldGenerator {
 			$newRow = mt_rand(0, MAX_ROW-1);
 			$newCoord = $this->hexalib->coord([$newCol, $newRow], 'Oddr');
 			$spiralZone = $this->hexalib->spiral($newCoord, round($size/1.5));
-			if (!coordsIntersect($spots, $spiralZone)) {
+			if (!$this->hexalib->coordsIntersect($spots, $spiralZone)) {
         		$spots[] = $newCoord;
         		$nbSpots--;
     		} else {
@@ -1130,14 +1135,11 @@ private function findConnectedArea($startCol, $startRow, $landTypeId, &$visited)
     return $area;
 }
 
-
-
 //------------------------------------------------------------------------------
 
 	public function widenTerrain(string $landType, string $landTypeToDo, int $width) {
 		$visited = []; // Pour éviter les doublons
 		$current = [];
-		// 1. Trouver tous les hexagones initiaux
 		$landTypeId = $this->land[$landType];
 		$this->board->forEachGround(function ($col, $row) use (&$current, $landTypeId) {
 		    $ground = $this->getGround($col, $row);
@@ -1165,8 +1167,5 @@ private function findConnectedArea($startCol, $startRow, $landTypeId, &$visited)
 		}
 	}
 
-
-
 }
-
 ?>

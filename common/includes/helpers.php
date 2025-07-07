@@ -54,28 +54,6 @@ function convert_to_int($value) {
     }
     return null;
 }
-//------------------- TO PUT IN HEXALIB
-function uniqueCoords(array $coords): array {
-	$uniqueMap = [];
-	foreach ($coords as $coord) {
-        $key = $coord->toString();
-        $uniqueMap[$key] = $coord;
-    }
-	return array_values($uniqueMap);
-}
-
-// Workdnly with Heaxalib Cube Coode
-function coordsIntersect(array $list1, array $list2): bool {
-    foreach ($list1 as $c1) {
-        foreach ($list2 as $c2) {
-            if ($c1->col === $c2->col && $c1->row === $c2->row) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-//-------------------
 
 function randomAround(float $base, float $percent = 0.2): int {
     $min = (int) round((1 - $percent) * $base);
@@ -83,14 +61,9 @@ function randomAround(float $base, float $percent = 0.2): int {
     return (int) round(mt_rand($min, $max));
 }
 
-
-
-function magicCylinder($col) {
-    // Far East
-    if ($col >= MAX_COL) { $col = $col % MAX_COL; }
-    // Far West 
-    if ($col < 0) { $col = (($col % MAX_COL) + MAX_COL) % MAX_COL; }
-    return $col;
+function magicCylinder(int $col): int {
+    // Solution mathématique qui gère tous les cas en une opération
+    return ($col % MAX_COL + MAX_COL) % MAX_COL;
 }
 
 function is_jwt_valid($jwt, $secret = 'secret') {
