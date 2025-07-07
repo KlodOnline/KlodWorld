@@ -55,12 +55,15 @@ function convert_to_int($value) {
     return null;
 }
 
-function magicCylinder($col) {
-    // Far East
-    if ($col >= MAX_COL) { $col = $col % MAX_COL; }
-    // Far West 
-    if ($col < 0) { $col = (($col % MAX_COL) + MAX_COL) % MAX_COL; }
-    return $col;
+function randomAround(float $base, float $percent = 0.2): int {
+    $min = (int) round((1 - $percent) * $base);
+    $max = (int) round((1 + $percent) * $base);
+    return (int) round(mt_rand($min, $max));
+}
+
+function magicCylinder(int $col): int {
+    // Solution mathématique qui gère tous les cas en une opération
+    return ($col % MAX_COL + MAX_COL) % MAX_COL;
 }
 
 function is_jwt_valid($jwt, $secret = 'secret') {

@@ -79,6 +79,7 @@ class Board {
 		}
 		return $this->{$collectionName};
 	}
+	
 	// Check what is in collections
 	public function statusOfCollections() {
 		global $LOG_LEVEL;
@@ -691,7 +692,7 @@ class Board {
 	        for ($j = $i + 1; $j < count($locatables); $j++) {
 	            $B_coord = $this->hexalib->coord([$locatables[$j]->col, $locatables[$j]->row], 'oddr');
 	            logMessage('Comparing '.serialize($locatables[$i]).' <-> '.serialize($locatables[$j]));
-	            if (!$this->hexalib->is_neighbour($A_coord, $B_coord)) { return false; }
+	            if (!$this->hexalib->isNeighbour($A_coord, $B_coord)) { return false; }
 	        }
 	    }
 
@@ -827,36 +828,86 @@ class Board {
 
 	// Finding neighbor of type $groundTypes.
 	// If inverted, find neighbor NOT of type $groundTypes
-	public function getGroundNeighborOfTypes(array $groundTypes, $col, $row, $direction = null, $invert = false, $radius = 1) {
-	    $currentCoord = $this->hexalib->coord([$col, $row], 'oddr');
-	    // Si une direction spécifique est fournie, cherche uniquement dans cette direction
+	public function getGroundNeighborOfTypes( array $ground_types, int $col, int $row, ?int $direction = null, bool $invert = false, int $radius = 1 ): array {
+	    $current_coord = $this->hexalib->coord([$col, $row], 'oddr');
 	    if ($direction !== null) {
-	        $neighborCoord = $this->hexalib->neighbour($currentCoord, $direction);
-	        $neighborCoord->col = magicCylinder($neighborCoord->col);
-	        $neighbor = $this->getGround($neighborCoord->col, $neighborCoord->row);
-	        // Vérification avec tableau de types et condition invert
-	        return ($neighbor !== null && 
-	                (($invert && !in_array($neighbor->getGroundType(), $groundTypes)) || 
-	                 (!$invert && in_array($neighbor->getGroundType(), $groundTypes)))) ? $neighbor : null;
+	        $neighbor = $this->getNeighborInDirection($current_coord, $direction, $ground_types, $invert);
+	        return $neighbor ? [$neighbor] : [];
 	    }
-	    // Sinon, parcours tous les voisins
+	    return $this->getNeighborsInRadius($current_coord, $radius, $ground_types, $invert);
+	}
+	public function getNeighborInDirection( HexCoordinate $coord, int $direction, array $ground_types, bool $invert ): ?Ground {
+	    $neighbor_coord = $this->hexalib->neighbour($coord, $direction);
+	    $neighbor_coord->col = magicCylinder($neighbor_coord->col);
+	    $neighbor = $this->getGround($neighbor_coord->col, $neighbor_coord->row);
+	    return $this->isValidGround($neighbor, $ground_types, $invert) ? $neighbor : null;
+	}
+	public function getNeighborsInRadius( HexCoordinate $center, int $radius, array $ground_types, bool $invert ): array {
 	    $neighbors = [];
-	    $neighborCoords = $this->hexalib->spiral($currentCoord, $radius);
-	    foreach ($neighborCoords as $eachCoord) {
-	        $eachCoord = $this->hexalib->convert($eachCoord, 'oddr');
-	        $eachCoord->col = magicCylinder($eachCoord->col);
-
-	        $neighbor = $this->getGround($eachCoord->col, $eachCoord->row);
-
-	        // Vérification avec tableau de types et condition invert
-	        if ($neighbor !== null && 
-	            (($invert && !in_array($neighbor->getGroundType(), $groundTypes)) || 
-	             (!$invert && in_array($neighbor->getGroundType(), $groundTypes)))) {
-	            $neighbors[] = $neighbor;
+	    $coords = ($radius === 1)
+	        ? $this->hexalib->allNeighbours($center) // Plus rapide que spiral(radius=1)
+	        : $this->hexalib->spiral($center, $radius);
+	    foreach ($coords as $coord) {
+	        $coord = $this->hexalib->convert($coord, 'oddr');
+	        $coord->col = magicCylinder($coord->col);
+	        $ground = $this->getGround($coord->col, $coord->row);
+	        if ($this->isValidGround($ground, $ground_types, $invert)) {
+	            $neighbors[] = $ground;
 	        }
 	    }
 	    return $neighbors;
 	}
+	public function isValidGround(?Ground $ground, array $types, bool $invert): bool {
+	    if ($ground === null) return false;
+	    $type = $ground->getGroundType();
+	    return $invert 
+	        ? !in_array($type, $types, true) 
+	        : in_array($type, $types, true);
+	}
+
+public function hasNeighborOfTypes(
+    int $col, 
+    int $row, 
+    array $ground_types, 
+    ?int $direction = null, 
+    bool $invert = false, 
+    int $radius = 1
+): bool {
+    $coord = $this->hexalib->coord([$col, $row], 'Oddr');
+    
+    // Cas direction spécifique (check unique)
+    if ($direction !== null) {
+        $neighbor = $this->hexalib->neighbour($coord, $direction);
+        $ground = $this->getGround(
+            magicCylinder($neighbor->col), 
+            $neighbor->row
+        );
+        return $this->isValidGround($ground, $ground_types, $invert);
+    }
+
+    // Cas radius avec early exit
+    if ($radius === 1) {
+        foreach ($this->hexalib->allNeighbours($coord) as $neighbor) {
+            $ground = $this->getGround(
+                magicCylinder($neighbor->col), 
+                $neighbor->row
+            );
+            if ($this->isValidGround($ground, $ground_types, $invert)) { return true; }
+        }
+        return false;
+    }
+
+    // Cas radius > 1 (spiral optimisé)
+    $spiral = $this->hexalib->spiral($coord, $radius);
+    foreach ($spiral as $neighbor) {
+        $ground = $this->getGround(
+            magicCylinder($neighbor->col), 
+            $neighbor->row
+        );
+        if ($this->isValidGround($ground, $ground_types, $invert)) { return true; }
+    }
+    return false;
+}
 
 	public function revealVisibleGrounds($actor) {
 		// 2 things can "view" : unit & city
