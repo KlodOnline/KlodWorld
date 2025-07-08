@@ -1,12 +1,13 @@
 FROM php:8.3-cli-alpine
 
-RUN apk add --no-cache git unzip curl && \
-    curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+RUN apk add --no-cache git unzip curl bash \
+    && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
+    && composer global require friendsofphp/php-cs-fixer \
+    && ln -s /root/.composer/vendor/bin/php-cs-fixer /usr/local/bin/php-cs-fixer
 
 WORKDIR /app
 
-RUN composer install
-
 COPY . .
+
 
 ENV PATH="/app/vendor/bin:$PATH"
