@@ -38,16 +38,21 @@ sh-game:
 	docker compose -f $(DEV-COMPOSE_FILE) exec game bash
 
 tools-build:
-	docker build --no-cache -t node-tools -f Dockerfile.tools .
+	docker build --no-cache -t node-tools -f DockerfileNode.tools .
+	docker build --no-cache -t php-tools -f DockerfilePHP.tools .
 
-lint-www:
+jslint-www:
 	docker run --rm -v "$(PWD):/app/project" node-tools sh -c "npm run lint-www"
 
-lint-chat:
+jslint-chat:
 	docker run --rm -v "$(PWD):/app/project" node-tools sh -c "npm run lint-chat"
 
-lint-www-fix:
+jslint-www-fix:
 	docker run --rm -v "$(PWD):/app/project" node-tools sh -c "npm run lint-www:fix"
 
-lint-chat-fix:
+jslint-chat-fix:
 	docker run --rm -v "$(PWD):/app/project" node-tools sh -c "npm run lint-chat:fix"
+phplint:
+	docker run --rm -v "$(PWD):/app" php-tools php-cs-fixer fix . --dry-run --diff --using-cache=no
+phpfix:
+	docker run --rm -v "$(PWD):/app" php-tools php-cs-fixer fix . --using-cache=no
