@@ -5,7 +5,6 @@ RUN apk add --no-cache git unzip curl && \
 
 WORKDIR /app
 
-COPY composer.* ./
 RUN composer install
 
 COPY . .
