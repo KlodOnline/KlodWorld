@@ -3,13 +3,6 @@
 
 - For contribution guidelines, see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
-## To-Do List
-
-- Refactor code to improve readability and make teamwork easier
-- Review and harden the authentication process
-- Add monitoring/logging tools for live world management
-- Optimize performance for large-scale, persistent simulations
-
 ## Purpose
 
 **KlodWorld** is the game server — it powers the actual gameplay. Players interact with it in real-time, and Game Masters use it to configure and manage game worlds.
