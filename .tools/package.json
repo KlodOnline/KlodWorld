@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "prepare": "husky install",
+    "lint-all": "eslint --config eslint.config.js 'project/**/*.js'",
+    "lint-all:fix": "eslint --config eslint.config.js 'project/**/*.js' --fix",
     "lint-www": "eslint --config eslint.config.js 'project/www/js/**/*.js'",
     "lint-chat": "eslint --config eslint.config.js 'project/chat/**/*.js'",
     "lint-www:fix": "eslint --config eslint.config.js 'project/www/**/*.js' --fix",
