@@ -1,4 +1,5 @@
 <?php
+
 /* =============================================================================
     gmLoadXml.php
     - Handles AJAX requests for the GM interface.
@@ -17,11 +18,14 @@ $ruleManager = new XMLObjectManager();
  * @param string $type The type of items to retrieve (e.g., 'units', 'buildings').
  * @return array List of item names.
  */
-function XMLnameList($type) {
+function XMLnameList($type)
+{
     $ruleManager = new XMLObjectManager();
     $items = $ruleManager->allItems($type);
     $names = [];
-    foreach ($items as $item) {  $names[] = $item->__get('name'); }
+    foreach ($items as $item) {
+        $names[] = $item->__get('name');
+    }
     return $names;
 }
 
@@ -60,7 +64,7 @@ if ($_GET['action'] == 'load_data') {
 
     // Generate table headers
     $output .= '<table id="data-table" border="1"><thead><tr>';
-    
+
     foreach ($items[0]->ColumnHeader() as $field) {
         $type = $field['type']; // 'simple' or 'complex' type
 
@@ -83,7 +87,7 @@ if ($_GET['action'] == 'load_data') {
     // Generate table rows
     foreach ($items as $item) {
         $output .= '<tr>';
-        
+
         $rowData = $item->rowData();
 
         foreach ($rowData as $field) {
@@ -92,56 +96,56 @@ if ($_GET['action'] == 'load_data') {
                 $output .= '<td class="input-wrapper">';
                 $output .= '<div class="field-container">';
 
-	                // var_dump($rowData);
-	                // echo('============================<br/>');
+                // var_dump($rowData);
+                // echo('============================<br/>');
 
                 foreach ($field as $subField) {
                     $output .= '<div class="complex-field">';
 
                     $output .= '<button type="button" class="row-btn" onclick="removeSubfield(this.closest(\'div\'))">-</button>';
 
-	                $output .= '<select class="editable-name">';
-	                $list = []; // Default empty list
+                    $output .= '<select class="editable-name">';
+                    $list = []; // Default empty list
 
-	                // Determine which list to use based on column type
-	                switch ($subField['class']) { // Assuming 'type' is provided for the field
-	                    case 'units':
-	                        $list = $unitsList;
-	                        break;
-	                    case 'buildings':
-	                        $list = $buildingsList;
-	                        break;
-	                    case 'resources':
-	                        $list = $resourcesList;
-	                        break;
-	                    case 'lands':
-	                        $list = $landsList;
-	                        break;
-	                    default:
-	                        $list = []; // Empty for 'simple' or undefined types
-	                        break;
-	                }
+                    // Determine which list to use based on column type
+                    switch ($subField['class']) { // Assuming 'type' is provided for the field
+                        case 'units':
+                            $list = $unitsList;
+                            break;
+                        case 'buildings':
+                            $list = $buildingsList;
+                            break;
+                        case 'resources':
+                            $list = $resourcesList;
+                            break;
+                        case 'lands':
+                            $list = $landsList;
+                            break;
+                        default:
+                            $list = []; // Empty for 'simple' or undefined types
+                            break;
+                    }
 
-	                // Populate the dropdown
-	                // $selected = '';
+                    // Populate the dropdown
+                    // $selected = '';
 
-	                // var_dump($subField);
-	                // echo('_______________________________<br/>');
+                    // var_dump($subField);
+                    // echo('_______________________________<br/>');
 
-	                
-	                $output .= '<option value=""></option>';
 
-	                foreach ($list as $name) {
+                    $output .= '<option value=""></option>';
 
-	                    $selected = ((string)$subField['column'] == $name) ? 'selected' : '';
+                    foreach ($list as $name) {
 
-	                // var_dump($selected);
-	                // echo('_______________________________<br/>');
+                        $selected = ((string)$subField['column'] == $name) ? 'selected' : '';
 
-	                    $output .= '<option value="' . $name . '" ' . $selected . '>' . $name . '</option>';
-                	}
+                        // var_dump($selected);
+                        // echo('_______________________________<br/>');
 
-                	$output .= '</select>';
+                        $output .= '<option value="' . $name . '" ' . $selected . '>' . $name . '</option>';
+                    }
+
+                    $output .= '</select>';
                     $output .= '<input type="text" value="' . (string)$subField['value'] . '" class="editable-value">';
                     $output .= '</div>';
                 }

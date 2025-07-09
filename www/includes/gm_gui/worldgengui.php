@@ -13,11 +13,11 @@ $ruleManager = new XMLObjectManager();
 	function getColorFromType(type) {
 		const colors = {
 <?php
-		$items = $ruleManager->allItems('lands');
-		$toEcho = implode(',', array_map(function($item) {
-	    	return " ".$item->__get('id').": '".$item->__get('rgb')."'";
-		}, $items));
-		echo $toEcho;
+        $items = $ruleManager->allItems('lands');
+$toEcho = implode(',', array_map(function ($item) {
+    return " ".$item->__get('id').": '".$item->__get('rgb')."'";
+}, $items));
+echo $toEcho;
 ?>
     	};
     	return colors[type] || '#000'; 

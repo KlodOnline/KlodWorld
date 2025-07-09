@@ -3,7 +3,7 @@
     xml_rules.php
     Load Rules for GUI by CSS & Javascript injections !
 
-    - This code is a mix of JS & PHP and should be the only one in the frontend 
+    - This code is a mix of JS & PHP and should be the only one in the frontend
     who behave this way, because it's really ugly and hard to maintain.
 
 ============================================================================= */
@@ -21,11 +21,11 @@ $ruleManager = new XMLObjectManager();
 	function getColorFromType(type) {
 		const colors = {
 <?php
-		$items = $ruleManager->allItems('lands');
-		$toEcho = implode(',', array_map(function($item) {
-	    	return " ".$item->__get('id').": '".$item->__get('rgb')."'";
-		}, $items));
-		echo $toEcho;
+        $items = $ruleManager->allItems('lands');
+$toEcho = implode(',', array_map(function ($item) {
+    return " ".$item->__get('id').": '".$item->__get('rgb')."'";
+}, $items));
+echo $toEcho;
 ?>
     	};
     	return colors[type] || '#000'; 
@@ -34,11 +34,11 @@ $ruleManager = new XMLObjectManager();
 	function getPngUrlForGroundType(type, num = 0) {
 		const urls = {
 <?php
-		$items = $ruleManager->allItems('lands');
-		$toEcho = implode(',', array_map(function($item) {
-	    	return " ".$item->__get('id').": '".$item->__get('url')."'";
-		}, $items));
-		echo $toEcho;
+        $items = $ruleManager->allItems('lands');
+$toEcho = implode(',', array_map(function ($item) {
+    return " ".$item->__get('id').": '".$item->__get('url')."'";
+}, $items));
+echo $toEcho;
 ?>
     	};
 		// Remplacement de # par num (si présent)
@@ -85,22 +85,22 @@ $ruleManager = new XMLObjectManager();
 		/* All Lands informations & definitions --------------------------------- */
 		lands: [
 <?php
-			$items = $ruleManager->allItems('lands');
-			$toEcho = implode(', ', array_map(function($item) {
-		    	return '{'.$item->javascriptData().'}';
-			}, $items));
-			echo $toEcho;
+            $items = $ruleManager->allItems('lands');
+$toEcho = implode(', ', array_map(function ($item) {
+    return '{'.$item->javascriptData().'}';
+}, $items));
+echo $toEcho;
 ?>
 		],
 
 		/* All Units informations & definitions --------------------------------- */
 		units: [
 <?php
-			$items = $ruleManager->allItems('units');
-			$toEcho = implode(', ', array_map(function($item) {
-		    	return '{'.$item->javascriptData().'}';
-			}, $items));
-			echo $toEcho;
+            $items = $ruleManager->allItems('units');
+$toEcho = implode(', ', array_map(function ($item) {
+    return '{'.$item->javascriptData().'}';
+}, $items));
+echo $toEcho;
 ?>
 		],
 

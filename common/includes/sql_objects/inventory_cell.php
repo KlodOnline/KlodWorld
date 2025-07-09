@@ -1,11 +1,12 @@
 <?php
+
 /* =============================================================================
-	InventoryCell class
+    InventoryCell class
 
 ============================================================================= */
-class InventoryCell extends BDDObject {
-
-	public const TABLE_NAME = 'inventory_cells';
+class InventoryCell extends BDDObject
+{
+    public const TABLE_NAME = 'inventory_cells';
 
     public int $id;
     public int $item_id;
@@ -14,7 +15,8 @@ class InventoryCell extends BDDObject {
 
     // public function __construct($data) { parent::__construct($data); }
 
-    public static function keyFields() {
+    public static function keyFields()
+    {
         return ['id'];
     }
 }

@@ -1,10 +1,10 @@
 <?php
 /* =============================================================================
-	KLODGAME DAEMON
-		-> Is launched as a service on system
-		-> have to manage system calls
-		-> is the "clock", fire turn with turnManager)
-		
+    KLODGAME DAEMON
+        -> Is launched as a service on system
+        -> have to manage system calls
+        -> is the "clock", fire turn with turnManager)
+
 ============================================================================= */
 // ===== Daemon dependencies =====
 include_once 'backend_init.php';
@@ -33,7 +33,7 @@ logMessage("Server started successfully.");
 // Handle system signals for graceful shutdown
 $running = true;
 
-pcntl_signal(SIGTERM, function() use (&$running) {
+pcntl_signal(SIGTERM, function () use (&$running) {
     logMessage("Shutting down '".WORLD_NAME."'...");
     $running = false;
 });
@@ -42,7 +42,9 @@ pcntl_signal(SIGTERM, function() use (&$running) {
 $tic_duration = TIC_SEC;
 
 $pause_duration = round($tic_duration / 5);
-if ($pause_duration > 5) {$pause_duration = 5;}
+if ($pause_duration > 5) {
+    $pause_duration = 5;
+}
 
 $last_turn_time = time();
 logMessage("Sleep time between TICs: $tic_duration sec. Next: " . date("d/m/Y H:i:s", $last_turn_time + $tic_duration));
@@ -55,21 +57,21 @@ $turnManager->lockServer(false);
 
 // Infinite loop
 while ($running) {
-	pcntl_signal_dispatch();
-	
+    pcntl_signal_dispatch();
+
     $current_time = time();
     $time_elapsed = $current_time - $last_turn_time;
 
     /*
-		Eventuellement réfléchir à un systeme de pre-lock 3 secondes avant le 
-		tour, pour que les unités soient verrouillées et ensuite, un refresh
-		des client avant le tour en lui meme pour que les joueurs voient ce qui
-		sera pris en compte et joué réllement par le système.
+        Eventuellement réfléchir à un systeme de pre-lock 3 secondes avant le
+        tour, pour que les unités soient verrouillées et ensuite, un refresh
+        des client avant le tour en lui meme pour que les joueurs voient ce qui
+        sera pris en compte et joué réllement par le système.
     */
 
     if ($time_elapsed >= $tic_duration) {
-    	
-    	logMessage("Time for a new Turn.");
+
+        logMessage("Time for a new Turn.");
         $start_time = time();
         $turnManager->playTurn();
         $end_time = time();

@@ -13,13 +13,9 @@
     Le Module
 ------------------------------------------------------------------------------*/
 function Welcome() {
-  
+  this.play = function () {
+    logMessage('Playing the Welcome & Tuto module.')
 
-    this.play = function() {
-        logMessage('Playing the Welcome & Tuto module.');
-
-
-        // window.open("http://wiki.klodonline.com/");
-    }
-
+    // window.open("http://wiki.klodonline.com/");
+  }
 }

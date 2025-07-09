@@ -1,4 +1,5 @@
 <?php
+
 /* =============================================================================
     USAGES (one liners !!! no need to instaciate or anything) :
         - Set one value :
@@ -10,25 +11,28 @@
                 'logged_in' => true
             ]);
         - Read a value :
-            echo SessionManager::get('username'); 
+            echo SessionManager::get('username');
         - Delete a value :
             SessionManager::delete('username');
         - Delete multiple Values :
             SessionManager::delete(['role', 'logged_in']);
-        - Delete ALL session 
+        - Delete ALL session
             SessionManager::destroy();
 ============================================================================= */
 
-class SessionManager {
+class SessionManager
+{
     // Démarre la session si elle n'est pas déjà active
-    private static function start() {
+    private static function start()
+    {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
     }
 
     // Définir une ou plusieurs valeurs dans la session
-    public static function set($key, $value = null) {
+    public static function set($key, $value = null)
+    {
         self::start();
 
         // Si un tableau est passé, on boucle dessus
@@ -45,14 +49,16 @@ class SessionManager {
     }
 
     // Récupérer une valeur de la session
-    public static function get($key) {
+    public static function get($key)
+    {
         self::start();
         return $_SESSION[$key] ?? null;
         session_write_close();
     }
 
     // Supprimer une ou plusieurs clés dans la session
-    public static function delete($key) {
+    public static function delete($key)
+    {
         self::start();
         if (is_array($key)) {
             foreach ($key as $k) {
@@ -65,7 +71,8 @@ class SessionManager {
     }
 
     // Détruire complètement la session (en cas de deco ?)
-    public static function destroy() {
+    public static function destroy()
+    {
         self::start();
         session_unset();
         session_destroy();

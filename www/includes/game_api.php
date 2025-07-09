@@ -1,10 +1,11 @@
 <?php
+
 /* =============================================================================
-	Game API :
-		-> Filter POST Data
-		-> Do all usefull inclusion
-		-> Asks to request.php object for info, to give it back to caller
-		
+    Game API :
+        -> Filter POST Data
+        -> Do all usefull inclusion
+        -> Asks to request.php object for info, to give it back to caller
+
 ============================================================================= */
 ob_start();
 include_once __DIR__.'/frontend_init.php';
@@ -22,5 +23,3 @@ if (!isset($_POST['T'])) {
     ob_end_clean();
     echo json_encode($response);
 }
-
-?>

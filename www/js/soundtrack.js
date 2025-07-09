@@ -1,104 +1,103 @@
+const music = document.getElementById('background-music')
+const toggleButton = document.getElementById('toggle-music')
 
-const music = document.getElementById('background-music');
-const toggleButton = document.getElementById('toggle-music');
-
-allowLogs();
+allowLogs()
 
 // Liste des musiques dans le répertoire "soundtrack"
-const fullPlaylist = [];
+const fullPlaylist = []
 
 // Liste de lecture
-let playlist = [];
+let playlist = []
 
-let currentTrackIndex = 0;
-music.volume = 0.25;
+let currentTrackIndex = 0
+music.volume = 0.25
 
 // Charge la playlist depuis le répertoire "soundtrack"
 function loadPlaylist() {
-	return fetch('soundtrack/')
-		.then(response => response.text())
-		.then(data => {
-			const parser = new DOMParser();
-			const doc = parser.parseFromString(data, 'text/html');
-			const links = Array.from(doc.querySelectorAll('a'));
-			fullPlaylist.splice(0, fullPlaylist.length);
-			links.forEach(link => {
-				const href = link.getAttribute('href');
-				if (href && href.endsWith('.mp3')) {
-					fullPlaylist.push('soundtrack/' + href);
-				}
-			});
-			logMessage('Playlist chargée avec ' + fullPlaylist.length + ' musiques.');
-		})
-		.catch(error => {
-			logMessage('Erreur lors du chargement des musiques : ' + error);
-		});
+  return fetch('soundtrack/')
+    .then((response) => response.text())
+    .then((data) => {
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(data, 'text/html')
+      const links = Array.from(doc.querySelectorAll('a'))
+      fullPlaylist.splice(0, fullPlaylist.length)
+      links.forEach((link) => {
+        const href = link.getAttribute('href')
+        if (href && href.endsWith('.mp3')) {
+          fullPlaylist.push('soundtrack/' + href)
+        }
+      })
+      logMessage('Playlist chargée avec ' + fullPlaylist.length + ' musiques.')
+    })
+    .catch((error) => {
+      logMessage('Erreur lors du chargement des musiques : ' + error)
+    })
 }
 
 // Réinitialise la playlist
-const resetPlaylist = (ignoredSong="") => {
-	if (fullPlaylist.length === 0) {
-		logMessage("Error : No soundtrack in the playlist")
-	}
+const resetPlaylist = (ignoredSong = '') => {
+  if (fullPlaylist.length === 0) {
+    logMessage('Error : No soundtrack in the playlist')
+  }
 
-	fullPlaylist.forEach(soundtrack => {
-		if (soundtrack !== ignoredSong) {
-			playlist.push(soundtrack);
-		}
-	})
+  fullPlaylist.forEach((soundtrack) => {
+    if (soundtrack !== ignoredSong) {
+      playlist.push(soundtrack)
+    }
+  })
 }
 
 // Fonction pour jouer une musique aléatoire
 const playRandomTrack = () => {
-	if (playlist.length === 0) {
-		resetPlaylist();
-	}
-	const randomIndex = Math.floor(Math.random() * playlist.length);
-	music.src = playlist[randomIndex];
-	logMessage(randomIndex);
-	playlist.splice(randomIndex, 1);
+  if (playlist.length === 0) {
+    resetPlaylist()
+  }
+  const randomIndex = Math.floor(Math.random() * playlist.length)
+  music.src = playlist[randomIndex]
+  logMessage(randomIndex)
+  playlist.splice(randomIndex, 1)
 
-    logMessage(`Lecture de la musique : ${playlist[randomIndex]}`);
-    music.play().catch((error) => {
-    	logForce("Erreur de lecture : ", error);
-	});
-};
+  logMessage(`Lecture de la musique : ${playlist[randomIndex]}`)
+  music.play().catch((error) => {
+    logForce('Erreur de lecture : ', error)
+  })
+}
 
 // Fonction pour changer de musique
 const playTrack = (index) => {
-	music.src = playlist[index];
-    music.play().catch((error) => {
-    	logForce("Erreur de lecture : ", error);
-	});
-};
+  music.src = playlist[index]
+  music.play().catch((error) => {
+    logForce('Erreur de lecture : ', error)
+  })
+}
 
 // Passer à une musique aléatoire après un délai
 music.addEventListener('ended', () => {
-	
-	// Temps aléatoire entre min et max minutes
-	const maxDelay = 6;
-	const minDelay = 3;
-	const delay = Math.floor(Math.random() * (maxDelay - minDelay + 1) + minDelay) * 60 * 1000; 
+  // Temps aléatoire entre min et max minutes
+  const maxDelay = 6
+  const minDelay = 3
+  const delay = Math.floor(Math.random() * (maxDelay - minDelay + 1) + minDelay) * 60 * 1000
 
-    logMessage(`Attente de ${delay / 60000} minutes avant de jouer le prochain morceau.`);
-    setTimeout(() => { playRandomTrack(); }, delay);
-});
+  logMessage(`Attente de ${delay / 60000} minutes avant de jouer le prochain morceau.`)
+  setTimeout(() => {
+    playRandomTrack()
+  }, delay)
+})
 
 // Gérer le bouton de pause/lecture
 toggleButton.addEventListener('click', () => {
-	if (music.paused) {
-    	music.play();
-        toggleButton.textContent = 'Stop Music';
-	} else {
-    	music.pause();
-        toggleButton.textContent = 'Play Music';
-	}
-});
-
+  if (music.paused) {
+    music.play()
+    toggleButton.textContent = 'Stop Music'
+  } else {
+    music.pause()
+    toggleButton.textContent = 'Play Music'
+  }
+})
 
 // Initialise la playlist avec toutes les soundtrack
 loadPlaylist().then(() => {
-	playRandomTrack();
-	music.pause();
-	toggleButton.textContent = 'Play Music';
-});
+  playRandomTrack()
+  music.pause()
+  toggleButton.textContent = 'Play Music'
+})

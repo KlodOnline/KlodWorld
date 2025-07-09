@@ -1,26 +1,27 @@
 <?php
+
 /* =============================================================================
-	COMMON INIT :
-		-> Includes all variables & files & anything that is usefull for
-		both backend & frontend
+    COMMON INIT :
+        -> Includes all variables & files & anything that is usefull for
+        both backend & frontend
 ============================================================================= */
 // ==== CONSTANTS ==============================================================
 define('COMMON_PATH', __DIR__.'/..');
 $ini_file = parse_ini_file(COMMON_PATH.'/param/config.ini', true);
 // ---- SQL Init ---------------------------------------------------------------
-define('DB_HOST', 	(string) $ini_file['sql']['host']);
-define('DB_USER', 	(string) $ini_file['sql']['user']);
-define('DB_PASS', 	(string) $ini_file['sql']['password']);
-define('DB_NAME', 	(string) $ini_file['sql']['database']);
+define('DB_HOST', (string) $ini_file['sql']['host']);
+define('DB_USER', (string) $ini_file['sql']['user']);
+define('DB_PASS', (string) $ini_file['sql']['password']);
+define('DB_NAME', (string) $ini_file['sql']['database']);
 define('BATCH_SIZE', (int) $ini_file['sql']['batch_size']);
 // ---- World Definition -------------------------------------------------------
-define('WORLD_NAME',(string) $ini_file['world']['world_name']);
-define('MAX_COL', 	(int) $ini_file['world']['max_col']);
-define('MAX_ROW', 	(int) $ini_file['world']['max_row']);
-define('DEMO', 		(boolean) $ini_file['world']['demo']);
-define('TIC_SEC', 	(int) $ini_file['world']['tic_sec']);
-define('WEBSITE', 	(string) $ini_file['world']['website']);
-define('WORLD_IP', 	(string) $ini_file['world']['world_ip']);
+define('WORLD_NAME', (string) $ini_file['world']['world_name']);
+define('MAX_COL', (int) $ini_file['world']['max_col']);
+define('MAX_ROW', (int) $ini_file['world']['max_row']);
+define('DEMO', (bool) $ini_file['world']['demo']);
+define('TIC_SEC', (int) $ini_file['world']['tic_sec']);
+define('WEBSITE', (string) $ini_file['world']['website']);
+define('WORLD_IP', (string) $ini_file['world']['world_ip']);
 define('CHAT_PORT', (int) $ini_file['world']['chat_port']);
 define('GAME_PORT', (int) $ini_file['world']['game_port']);
 // ==== INCLUDES ===============================================================
@@ -49,4 +50,3 @@ include_once COMMON_PATH.'/includes/locatables/ground.php';
 $LOG_LEVEL = 0;
 $TIMER_START = 0;
 $TIMER_STEP = 0;
-?>

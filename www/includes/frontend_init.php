@@ -1,14 +1,15 @@
 <?php
+
 /* -----------------------------------------------------------------------------
-			MUST Be loaded at start of any php script who may do SQL or any
-			security related tasks.
+            MUST Be loaded at start of any php script who may do SQL or any
+            security related tasks.
 ----------------------------------------------------------------------------- */
 /* =============================================================================
-	FRONT_END INIT :
-		-> Includes all variables & files & anything that is usefull for front
+    FRONT_END INIT :
+        -> Includes all variables & files & anything that is usefull for front
 ============================================================================= */
 //===================== COMMUNS ================================================
-header( 'content-type: text/html; charset=utf-8' );
+header('content-type: text/html; charset=utf-8');
 session_set_cookie_params([
     'lifetime' => 0, // Cookie will last until the browser is closed
     'path' => '/', // Available within the entire domain
@@ -38,14 +39,16 @@ if (isset($_REQUEST['_SESSION'])) {
 }
 
 //==================== CHOSES DIVERSES =========================================
-define ('SERVER_OS','linux');	
+define('SERVER_OS', 'linux');
 date_default_timezone_set('Europe/Paris');
 
 //==================== IDENTIFICATION ==========================================
 $connection_log = '';
 // Pas de session et pas de token => OUT.
 $session_token = SessionManager::get('token');
-if (!$session_token && !isset($_POST['token'])) { exit(); }
+if (!$session_token && !isset($_POST['token'])) {
+    exit();
+}
 
 // Un token est envoyé en POST => Vérification et éventuelle mise à jour
 if (isset($_POST['token'])) {
@@ -70,42 +73,58 @@ if (isset($_POST['token'])) {
     }
 }
 // Une session sans token ?! => OUT.
-$session_token = SessionManager::get('token'); 
-if (!$session_token) { exit(); }
+$session_token = SessionManager::get('token');
+if (!$session_token) {
+    exit();
+}
 
 // Décodage du payload du token
 $token_parts = explode('.', $session_token);
 $payload = json_decode(base64_decode(str_replace(['_', '-'], ['/', '+'], $token_parts[1])), true);
 
-define('META_ID', 	(int) $payload['meta_id']);
-define('PLAYER_NAME', 	(string) $payload['name']);
-define('FEE_PAID', 	(int) $payload['fee_paid']);
+define('META_ID', (int) $payload['meta_id']);
+define('PLAYER_NAME', (string) $payload['name']);
+define('FEE_PAID', (int) $payload['fee_paid']);
 define('CREDS_DEBUG', false);
 
-if ($connection_log!=='') { logMessage(PLAYER_NAME.' ('.META_ID.') '.$connection_log); }
-if (META_ID===0) {exit();}
+if ($connection_log !== '') {
+    logMessage(PLAYER_NAME.' ('.META_ID.') '.$connection_log);
+}
+if (META_ID === 0) {
+    exit();
+}
 
 // MEMORY ----------------------------------------------------------------------
-define('MEM_DEBUG',   false);
+define('MEM_DEBUG', false);
 
 @ini_set('memory_limit', '2048M');
 
 // Logs pour le debug
-if (MEM_DEBUG) { logMessage(" # LIMIT = " . ini_get('memory_limit')); }
+if (MEM_DEBUG) {
+    logMessage(" # LIMIT = " . ini_get('memory_limit'));
+}
 
 // CREDITS CHECK ---------------------------------------------------------------
 $now = new DateTime();
-if (CREDS_DEBUG) { logMessage('Have credits?'); }
+if (CREDS_DEBUG) {
+    logMessage('Have credits?');
+}
 if (FEE_PAID < ($now->getTimestamp())) {
-    if (CREDS_DEBUG) { logMessage('No more credits!'); }
+    if (CREDS_DEBUG) {
+        logMessage('No more credits!');
+    }
     // In case of KlodAdmin or Demo, entering allowed !
-    if (!DEMO and !META_ID===1) {
-        if (CREDS_DEBUG) { logMessage('No credits, no game...'); }
+    if (!DEMO and !META_ID === 1) {
+        if (CREDS_DEBUG) {
+            logMessage('No credits, no game...');
+        }
         exit();
     } else {
-        if (CREDS_DEBUG) { logMessage('But this is not about money...'); }
+        if (CREDS_DEBUG) {
+            logMessage('But this is not about money...');
+        }
     }
 }
-if (CREDS_DEBUG) { logMessage('My tailor is rich!'); }
-
-?>
+if (CREDS_DEBUG) {
+    logMessage('My tailor is rich!');
+}
