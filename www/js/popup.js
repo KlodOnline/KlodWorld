@@ -1,13 +1,16 @@
 /*==============================================================================
     POPUPS
-    	Any popups !
-
+        Any popups !
 ==============================================================================*/
 "use strict";
 
 function Popup() {
-    var self = this; // Pour accéder à `this` dans les callbacks
-    var currentOkAction = null; // Stocke la fonction "OK"
+    const self = this;
+    let currentOkAction = null;
+    const $popup = $('#popup');
+
+    // Init : rendu draggable, masqué au début (mais avec z-index haut en CSS)
+    $popup.hide().draggable({ containment: 'body' });
 
     this.confirmPopup = function({ text, ok, okText = "OK", cancelText = "CANCEL" }) {
         if (typeof ok !== "function") {
@@ -15,45 +18,34 @@ function Popup() {
             return;
         }
 
-        // Stocke l'action à exécuter si "OK" est cliqué
         currentOkAction = ok;
 
-        // Génère la popup
-        var popupHtml = `
-            <div class="popup-content">
-                <p>${text}</p>
-                <button class="popup-btn popup-ok">${okText}</button>
-                <button class="popup-btn popup-cancel">${cancelText}</button>
-            </div>
-        `;
-
-        // Affiche la popup
-        $('#popup').html(popupHtml).css('z-index', 15);
+        $popup
+            .html(`
+                <div class="popup-content">
+                    <p>${text}</p>
+                    <button class="popup-btn popup-ok">${okText}</button>
+                    <button class="popup-btn popup-cancel">${cancelText}</button>
+                </div>
+            `)
+            .show(); // Visible sans toucher au z-index
     };
 
     this.delete = function() {
-        $('#popup').css('z-index', -5).empty();
-        currentOkAction = null; // Reset l'action après fermeture
+        $popup.empty().hide();
+        currentOkAction = null;
     };
 
-    // Gestion des événements
-    $('#popup').on('click', '.popup-ok', function() {
-        if (currentOkAction) currentOkAction(); // Exécute la fonction stockée
-        self.delete(); // Ferme la popup après l'action
+    $popup.on('click', '.popup-ok', () => {
+        if (currentOkAction) currentOkAction();
+        self.delete();
     });
 
-    $('#popup').on('click', '.popup-cancel', function() {
-        self.delete(); // Ferme simplement la popup
+    $popup.on('click', '.popup-btn.popup-cancel', () => {
+        self.delete();
     });
 
-    // Fermer la popup avec "Échap"
-    $(document).on('keydown', function(e) {
-        if (e.key === "Escape") {
-            self.delete();
-        }
+    $(document).on('keydown', (e) => {
+        if (e.key === "Escape") self.delete();
     });
-
-    // Rendre la popup déplaçable
-    $( '#popup' ).draggable({ containment: 'body' });
-
 }
