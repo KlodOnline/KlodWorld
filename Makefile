@@ -1,7 +1,11 @@
 DEV-COMPOSE_FILE=docker-compose-dev.yml
+ifeq ($(OS),Windows_NT)
+PWD := $(shell powershell -Command "[System.IO.Directory]::GetCurrentDirectory()")
+else
+PWD := $(shell pwd)
+endif
 
 up:
-	npm install --prefix ./chat
 	docker compose -f $(DEV-COMPOSE_FILE) up -d
 
 down:
@@ -32,3 +36,22 @@ sh-node:
 
 sh-game:
 	docker compose -f $(DEV-COMPOSE_FILE) exec game bash
+
+build-tools:
+	docker build --no-cache -t node-tools -f DockerfileNode.tools .
+	docker build --no-cache -t php-tools -f DockerfilePHP.tools .
+
+lint-js:
+	docker run --rm -v "$(PWD):/app/project" node-tools sh -c "npm run lint-all"
+
+fix-js:
+	docker run --rm -v "$(PWD):/app/project" node-tools sh -c "npm run lint-all:fix"
+
+lint-php:
+	docker run --rm -v "$(PWD):/app" php-tools php-cs-fixer fix . --dry-run --diff --using-cache=no
+
+fix-php:
+	docker run --rm -v "$(PWD):/app" php-tools php-cs-fixer fix . --using-cache=no
+
+fix-all:
+	make fix-js && make fix-php

@@ -1,0 +1,7 @@
+#!/bin/sh
+branch="$(git symbolic-ref --short HEAD)"
+
+if [ "$branch" = "main" ] || [ "$branch" = "develop" ]; then
+  echo "Forbidden ! Push to '$branch' not allowed. Please, kindly use a Pull Request."
+  exit 1
+fi
