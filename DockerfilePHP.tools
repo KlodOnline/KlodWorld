@@ -9,5 +9,4 @@ WORKDIR /app
 
 COPY . .
 
-
 ENV PATH="/app/vendor/bin:$PATH"

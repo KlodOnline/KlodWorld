@@ -41,14 +41,17 @@ build-tools:
 	docker build --no-cache -t node-tools -f DockerfileNode.tools .
 	docker build --no-cache -t php-tools -f DockerfilePHP.tools .
 
-jslint:
+lint-js:
 	docker run --rm -v "$(PWD):/app/project" node-tools sh -c "npm run lint-all"
 
-jsfix:
+fix-js:
 	docker run --rm -v "$(PWD):/app/project" node-tools sh -c "npm run lint-all:fix"
 
-phplint:
+lint-php:
 	docker run --rm -v "$(PWD):/app" php-tools php-cs-fixer fix . --dry-run --diff --using-cache=no
 
-phpfix:
+fix-php:
 	docker run --rm -v "$(PWD):/app" php-tools php-cs-fixer fix . --using-cache=no
+
+fix-all:
+	make fix-js && make fix-php
