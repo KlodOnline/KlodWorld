@@ -1,7 +1,7 @@
 # Dockerfile.tools
 FROM node:20-alpine
 
-# Installer git pour husky
+# Install git for Husky
 RUN apk add --no-cache git
 
 WORKDIR /app
