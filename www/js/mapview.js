@@ -264,55 +264,46 @@ function Mapview(max_col, max_row, start_coord)
         that.draw_scope();
     };   
 
-	this.set_scope_new = function() {
-	    // Effacer directement tout le SCOPE
-	    SCOPE.length = 0;
+	this.set_scope = function () {
+	  // Clear the global SCOPE array in-place — faster than using .splice() or reassignment
+	  SCOPE.length = 0
 
-	    // Obtenir les limites hexagonales
-	    const [minCol, minLine, maxCol, maxLine] = this.getHexBounds();
+	  // Get the rectangular boundaries of the current hex selection
+	  const [minCol, minLine, maxCol, maxLine] = this.getHexBounds()
 
-	    // Stocker les résultats des appels à Bo.objects_at pour éviter les appels multiples
-	    const objectsCache = {};
+	  // Estimate the number of hexes to pre-size SCOPE (avoids internal array resizing during push)
+	  const estimatedSize = (maxCol - minCol + 1) * (maxLine - minLine + 1)
+	  if (SCOPE.length < estimatedSize) {
+	    SCOPE.length = estimatedSize  // Pre-allocate internal capacity
+	    SCOPE.length = 0              // Reset logical length while keeping capacity
+	  }
 
-	    for (let col = minCol; col <= maxCol; col++) {
-	        for (let line = minLine; line <= maxLine; line++) {
-	            if (!objectsCache.hasOwnProperty(`${col},${line}`)) {
-	                objectsCache[`${col},${line}`] = Bo.objects_at(col, line);
-	            }
-	            let objects = objectsCache[`${col},${line}`];
-	            if (objects) {
-	                SCOPE.push(objects);
+	  // Reuse temporary variables to reduce memory churn during iteration
+	  let objects, objKeys, objKey, obj
+	  let coordString
 
-	                // Utiliser une boucle for classique pour potentiellement améliorer les performances
-	                for (let objKey in objects) {
-	                    if (objects.hasOwnProperty(objKey)) {
-	                        objects[objKey].set_relat_place(`${col},${line}`);
-	                    }
-	                }
-	            }
+	  // Nested loops over hexagonal grid bounds (column × line)
+	  for (let col = minCol; col <= maxCol; col++) {
+	    for (let line = minLine; line <= maxLine; line++) {
+	      objects = Bo.objects_at(col, line)
+	      if (objects) {
+	        SCOPE.push(objects)
+
+	        // Avoid Object.values(): it allocates a new array; we only need keys
+	        // Also avoid template literals which allocate new strings on each pass
+	        coordString = col + ',' + line
+	        objKeys = Object.keys(objects)
+
+	        // Traditional for-loop outperforms forEach in tight loops
+	        for (let i = 0, len = objKeys.length; i < len; i++) {
+	          objKey = objKeys[i]
+	          obj = objects[objKey]
+	          obj.set_relat_place(coordString)
 	        }
+	      }
 	    }
-	};
-
-    this.set_scope = function() {
-    // Effacer directement tout le SCOPE
-    SCOPE.length = 0;
-
-    // Obtenir les limites hexagonales
-    const [minCol, minLine, maxCol, maxLine] = this.getHexBounds();
-
-    for (let col = minCol; col <= maxCol; col++) {
-        for (let line = minLine; line <= maxLine; line++) {
-            let objects = Bo.objects_at(col, line);
-            if (objects) {
-                SCOPE.push(objects);
-
-                // Utiliser forEach pour optimiser la boucle
-                Object.values(objects).forEach(obj => obj.set_relat_place(`${col},${line}`));
-	            }
-	        }
-	    }
-	};
+	  }
+	}
 
 	this.draw_scope = function() {
 
