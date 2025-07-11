@@ -65,7 +65,7 @@ function GameInit() {
 
         // On demarre ceux qui n'ont pas besoin de se preparer :
         logMessage("Launching modules !", "main.js");
-        Or = new Order_Iface();
+        Or = new OrderIface();
         Se = new Selection();
         Pl = new Panel();
         Pp = new Popup();

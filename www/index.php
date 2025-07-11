@@ -98,14 +98,15 @@ include_once __DIR__.'/includes/frontend_init.php';
 
         <!-- Les Modules Autocharges --> 
         <script type="text/javascript" src="./js/hexalib.js"></script>
-        <script type="text/javascript" src="./js/client_io.js"></script>
+        <script type="text/javascript" src="./js/client-io.js"></script>
         <script type="text/javascript" src="./js/tchat.js"></script>
         <script type="text/javascript" src="./js/soundtrack.js"></script>
                 
         <!-- Les Modules Charges par le main --> 
         <!-- script type="text/javascript" src="./js/game_events.js"></script -->
-        <script type="text/javascript" src="./js/order_iface.js"></script>
-        <script type="text/javascript" src="./js/board_iface.js"></script>
+        <script type="text/javascript" src="./js/orders/order-iface.js"></script>
+
+        <script type="text/javascript" src="./js/board-iface.js"></script>
         <script type="text/javascript" src="./js/welcome.js"></script>
         <script type="text/javascript" src="./js/mapview.js"></script>
         <script type="text/javascript" src="./js/minimap.js"></script>
@@ -113,9 +114,9 @@ include_once __DIR__.'/includes/frontend_init.php';
         <script type="text/javascript" src="./js/selection.js"></script>
 
         <!-- Les fenetres et popup --> 
-        <script type="text/javascript" src="./js/panels.js"></script>
-        <script type="text/javascript" src="./js/panels/panelCity.js"></script>
-		<script type="text/javascript" src="./js/panels/panelUnit.js"></script>
+        <script type="text/javascript" src="./js/panels/panel-main.js"></script>
+        <script type="text/javascript" src="./js/panels/panel-city.js"></script>
+		<script type="text/javascript" src="./js/panels/panel-unit.js"></script>
 
         <script type="text/javascript" src="./js/popup.js"></script>
 

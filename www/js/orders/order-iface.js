@@ -1,12 +1,23 @@
 /*==============================================================================
-    Order_Iface
+
+    OrderIface
+ 		Contient uniquement les définitions des classes d'ordres spécifiques et
+ 		leurs comportements intrinsèques. 
+
+
+    ORDER() - Classe de base
+    MOVE(), BUILD_CITY(), RECRUIT_UNIT(), BUILD_ROAD(), etc.
+    generate(units, data) - Initialisation de l'ordre
+    server_version() - Format pour le serveur
+    txt() - Affichage de l'ordre actif
+    prep_txt() - Affichage de préparation
 
 ==============================================================================*/
 
 /*------------------------------------------------------------------------------
     Le module :
  -----------------------------------------------------------------------------*/
-function Order_Iface() {
+function OrderIface() {
 
     // Liste des ordres existants --------------------------------------------------
     // Tu ne VEUX PAS automatiser ça !
@@ -15,6 +26,8 @@ function Order_Iface() {
       BUILD_CITY: BUILD_CITY,
       BUILD_ROAD: BUILD_ROAD,
       MOVE_ROAD: MOVE_ROAD,
+      RECRUIT_UNIT: RECRUIT_UNIT,
+      BUILD_BUILDING: BUILD_BUILDING, // sry I didn't find better name
       CHOP_WOOD: CHOP_WOOD
     };
 
@@ -179,7 +192,9 @@ function MOVE() {
 
 function BUILD_CITY() { ORDER.call(this); };
 function CHOP_WOOD() { ORDER.call(this); };    
-function BUILD_ROAD() { ORDER.call(this); };    
+function BUILD_ROAD() { ORDER.call(this); };   
+function RECRUIT_UNIT() { ORDER.call(this); };    
+function BUILD_BUILDING() { ORDER.call(this); };     
 // En vrai, c'est juste un MOVE un peu agremente...
 function MOVE_ROAD() { MOVE.call(this); };
 

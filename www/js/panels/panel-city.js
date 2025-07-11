@@ -89,24 +89,22 @@ class PanelCity {
         `
   }
 
-  getAvailableUnits() {
-    // Utilise les règles XML chargées pour obtenir les unités disponibles
-    const units = []
-    if (window.Rules && window.Rules.units) {
-      for (const unitId in window.Rules.units) {
-        const unit = window.Rules.units[unitId]
-        if (this.canBuildUnit(unit)) {
-          units.push({
-            id: unitId,
-            name: unit.name,
-            turn: unit.turn,
-            cost: unit.cost?.gold || 0
-          })
-        }
-      }
-    }
-    return units
-  }
+getAvailableUnits() {  
+    const units = [];  
+    if (Rules && Rules.units) {  
+        Rules.units.forEach(unit => {  
+            if (this.canBuildUnit(unit)) {  
+                units.push({  
+                    id: unit.id,  
+                    name: unit.name,  
+                    turn: unit.turn,  
+                    cost: unit.cost?.gold || 0  
+                });  
+            }  
+        });  
+    }  
+    return units;  
+}
 
   canBuildUnit(unit) {
     // Vérifie si la ville peut construire cette unité
@@ -151,29 +149,37 @@ class PanelCity {
     })
   }
 
-  startUnitConstruction(unitType) {
-    // Envoie l'ordre de construction au serveur
-    const orderData = {
-      type: 'RECRUIT_UNIT',
-      city_id: this.id,
-      unit_type: unitType
-    }
-
-    C.send_order('RECRUIT_UNIT', this.id, orderData, (response) => {
-      if (response.success) {
-        // Actualise l'affichage
-        Pl.details('city', this.id)
-      } else {
-        alert('Erreur: ' + response.message)
-      }
-    })
-  }
-
-  cancelConstructionOrder(orderId) {
-    C.send_order('CANCEL_ORDER', orderId, {}, (response) => {
-      if (response.success) {
-        Pl.details('city', this.id)
-      }
-    })
-  }
+startUnitConstruction(unitType) {  
+    // Format : CITY_ID-RECRUIT_UNIT-UNIT_TYPE  
+    const orderString = `${this.id}-RECRUIT_UNIT-${unitType}`;  
+      
+    C.ask_data('SET_ORDER', orderString, (response) => {  
+        if (response && response.length > 0) {  
+            // Actualise l'affichage avec les nouvelles données  
+            this.addSelectedInfo(response);  
+        } else {  
+            alert('Erreur lors de la création de l\'ordre');  
+        }  
+    });  
+}  
+  
+cancelConstructionOrder(orderId) {  
+    C.ask_data('CANCEL_ORDER', orderId, (response) => {  
+        if (response && response.length > 0) {  
+            this.addSelectedInfo(response);  
+        }  
+    });  
+}  
+  
+// Ajouter cette méthode pour traiter la réponse serveur  
+addSelectedInfo(data) {  
+    if (data && data.length > 0) {  
+        // Mettre à jour les données de la ville avec la réponse  
+        this.data = data[0];  
+        // Redessiner le contenu du panneau  
+        $('#panel_content').html(this.content());  
+        this.setupEvents();  
+    }  
+}
+  
 }
