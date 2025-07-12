@@ -4,9 +4,8 @@
  		Contient uniquement les définitions des classes d'ordres spécifiques et
  		leurs comportements intrinsèques. 
 
-
     ORDER() - Classe de base
-    MOVE(), BUILD_CITY(), RECRUIT_UNIT(), BUILD_ROAD(), etc.
+    OrderMove(), BUILD_CITY(), RECRUIT_UNIT(), BUILD_ROAD(), etc.
     generate(units, data) - Initialisation de l'ordre
     server_version() - Format pour le serveur
     txt() - Affichage de l'ordre actif
@@ -17,28 +16,29 @@
 /*------------------------------------------------------------------------------
     Le module :
  -----------------------------------------------------------------------------*/
+/*
 function OrderIface() {
 
     // Liste des ordres existants --------------------------------------------------
     // Tu ne VEUX PAS automatiser ça !
     this.constructors = {
-      MOVE: MOVE,
-      BUILD_CITY: BUILD_CITY,
-      BUILD_ROAD: BUILD_ROAD,
-      MOVE_ROAD: MOVE_ROAD,
-      RECRUIT_UNIT: RECRUIT_UNIT,
-      BUILD_BUILDING: BUILD_BUILDING, // sry I didn't find better name
-      CHOP_WOOD: CHOP_WOOD
+        MOVE: OrderMove,  
+        BUILD_CITY: OrderBuildCity,  
+        BUILD_ROAD: OrderBuildRoad,  
+        OrderMove_ROAD: OrderMoveRoad,  
+        CHOP_WOOD: OrderChopWood,
+        RECRUIT: OrderRecruit,
+        BUILDING: OrderBuilding
     };
 
-    this.order_from_server = function(units, order) {
+    this.createFromServer = function(units, order) {
         const new_order = new this.constructors[order.name]();
         new_order.generate(units, order);
         new_order.log_info();
         return new_order;
     };
 
-    this.order_from_gui = function(units, name) {
+    this.createFromGUI = function(units, name) {
         const order = { 'name':name, 'data':{} }
         const new_order = new this.constructors[order.name]();
         new_order.generate(units, order);
@@ -47,7 +47,7 @@ function OrderIface() {
     };    
 
 };
-
+*/
 /*------------------------------------------------------------------------------
     Les Ordres geres :
         Il "ont" :
@@ -57,7 +57,7 @@ function OrderIface() {
 
  -----------------------------------------------------------------------------*/
 
-function ORDER() {
+function OrderClass() {
 
     // Primitives Param --------------------------------------------------------
     this.name = this.constructor.name;
@@ -100,9 +100,9 @@ function ORDER() {
 
 };
 
-function MOVE() {
+function OrderMove() {
 
-    ORDER.call(this);
+    OrderClass.call(this);
     this.fpt = 0;
 
 
@@ -179,24 +179,24 @@ function MOVE() {
 	};
 
     // Les comportements assignes ----------------------------------------------
-    // MOVE.prototype.setPathData = setPathData;
-    MOVE.prototype.last_path = last_path;
-    MOVE.prototype.add_to_path = add_to_path;
-    MOVE.prototype.filter_path = filter_path;
-    MOVE.prototype.tic_next_step = tic_next_step;
-    MOVE.prototype.tic_fulltmppath = tic_fulltmppath;
-    MOVE.prototype.set_path = set_path;
-    MOVE.prototype.speed =speed;
+    // OrderMove.prototype.setPathData = setPathData;
+    OrderMove.prototype.last_path = last_path;
+    OrderMove.prototype.add_to_path = add_to_path;
+    OrderMove.prototype.filter_path = filter_path;
+    OrderMove.prototype.tic_next_step = tic_next_step;
+    OrderMove.prototype.tic_fulltmppath = tic_fulltmppath;
+    OrderMove.prototype.set_path = set_path;
+    OrderMove.prototype.speed =speed;
 
 };
 
-function BUILD_CITY() { ORDER.call(this); };
-function CHOP_WOOD() { ORDER.call(this); };    
-function BUILD_ROAD() { ORDER.call(this); };   
-function RECRUIT_UNIT() { ORDER.call(this); };    
-function BUILD_BUILDING() { ORDER.call(this); };     
-// En vrai, c'est juste un MOVE un peu agremente...
-function MOVE_ROAD() { MOVE.call(this); };
+function OrderBuildCity() { OrderClass.call(this); };
+function OrderChopWood() { OrderClass.call(this); };    
+function OrderBuildRoad() { OrderClass.call(this); };   
+function OrderRecruit() { OrderClass.call(this); };    
+function OrderBuilding() { OrderClass.call(this); };     
+// En vrai, c'est juste un OrderMove un peu agremente...
+function OrderMoveRoad() { OrderClass.call(this); };
 
 /*==============================================================================
     Les comportements des ordres

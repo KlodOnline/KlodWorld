@@ -150,8 +150,8 @@ getAvailableUnits() {
   }
 
 startUnitConstruction(unitType) {  
-    // Format : CITY_ID-RECRUIT_UNIT-UNIT_TYPE  
-    const orderString = `${this.id}-RECRUIT_UNIT-${unitType}`;  
+    // Format : CITY_ID-RECRUIT-UNIT_TYPE  
+    const orderString = `${this.id}-RECRUIT-${unitType}`;  
       
     C.ask_data('SET_ORDER', orderString, (response) => {  
         if (response && response.length > 0) {  

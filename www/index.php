@@ -21,8 +21,10 @@ include_once __DIR__.'/includes/frontend_init.php';
         <script src="https://cdnjs.cloudflare.com/ajax/libs/seedrandom/2.3.10/seedrandom.min.js"></script>
 
         <!-- CSS -->
-        <link rel="stylesheet" type="text/css" href="http://code.jquery.com/ui/1.9.2/themes/base/jquery-ui.css"/>
+        <link rel="stylesheet" type="text/css" href="./css/jquery-ui.css"/>
+        
 <!--
+		<link rel="stylesheet" type="text/css" href="http://code.jquery.com/ui/1.9.2/themes/base/jquery-ui.css"/>
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.4.0/dist/leaflet.css" integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA==" crossorigin=""/>
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css" integrity="sha512-hoalWLoI8r4UszCkZ5kL8vayOGVae1oxXe/2A4AO6J9+580uKHDO3JdHb7NzwwzK5xr/Fs0W40kiNHxM9vyTtQ==" crossorigin=""/>
 -->
@@ -104,8 +106,11 @@ include_once __DIR__.'/includes/frontend_init.php';
                 
         <!-- Les Modules Charges par le main --> 
         <!-- script type="text/javascript" src="./js/game_events.js"></script -->
-        <script type="text/javascript" src="./js/orders/order-iface.js"></script>
-
+        <script type="text/javascript" src="./js/orders/orders.js"></script>
+        <script type="module" src="./js/orders/order-factory.js"></script>
+        <script type="module" src="./js/orders/order-ui.js"></script>
+        <script type="module" src="./js/orders/order-api.js"></script>
+        
         <script type="text/javascript" src="./js/board-iface.js"></script>
         <script type="text/javascript" src="./js/welcome.js"></script>
         <script type="text/javascript" src="./js/mapview.js"></script>
@@ -121,7 +126,8 @@ include_once __DIR__.'/includes/frontend_init.php';
         <script type="text/javascript" src="./js/popup.js"></script>
 
         <!-- Le Main, enfin ! --> 
-        <script type="text/javascript" src="./js/main.js"></script>
+        <!-- script type="text/javascript" src="./js/main.js"></script -->
+        <script type="module" src="main.js"></script>
         
     </body>
 </html>

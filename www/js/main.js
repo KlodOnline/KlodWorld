@@ -5,6 +5,9 @@
         - et ensuite qui lance les modules qui vont bien
 ==============================================================================*/
 "use strict";
+import { OrderAPI } from './order/order-api.js';
+import { OrderFactory } from './order/order-factory.js';
+import { OrderUI } from './order/order-ui.js';
 
 /*------------------------------------------------------------------------------
     container des modules : (variables accessibles a tous)
@@ -30,6 +33,8 @@ let SELECTION = null;
 const H_S = 5;                    // Hexagons Size in Lat/Lng
 const H_W = Math.sqrt(3) * H_S;   // Hexagon Width ...
 const H_H = H_S*2;                // ... and height.
+
+
 
 /*------------------------------------------------------------------------------
     Le Module en lui meme : 
@@ -65,7 +70,9 @@ function GameInit() {
 
         // On demarre ceux qui n'ont pas besoin de se preparer :
         logMessage("Launching modules !", "main.js");
-        Or = new OrderIface();
+        // Or = new OrderFactory();
+        // OrderAPI = new OrderAPI();
+        // OrNew = new OrderFactory();
         Se = new Selection();
         Pl = new Panel();
         Pp = new Popup();

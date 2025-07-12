@@ -377,7 +377,9 @@ class Selection {
 	    	logMessage('Generating BUSY unit cartouches...');
 	        
 
-	        const order = Or.order_from_server(units, units[0].or);
+	        // const order = Or.order_from_server(units, units[0].or);
+
+	        const order = OrderFactory.createFromServer(units, units[0].or);
 
 	        logMessage('Ok on tente de gerer les ordres.')
 
@@ -573,13 +575,20 @@ class Selection {
 			logMessage('Canceling order from the server !');
 	    	const ids_stg = this.cartouches[cart_tag].allIds().join(',');
 	        const to_api = ids_stg
-	        C.ask_data('CANCEL_ORDER', to_api, this.clearCartouches.bind(this, cart_tag) );
+	        // C.ask_data('CANCEL_ORDER', to_api, this.clearCartouches.bind(this, cart_tag) );
+
+		    // const ids_stg = this.cartouches[cart_tag].allIds().join(',');  
+		    OrderAPI.cancelOrder(ids_stg)  
+		        .then(() => this.clearCartouches(cart_tag))  
+		        .catch(error => logMessage('Order cancellation failed: ' + error.message));  
+
 		}
+
 		// disableLogs();
 	}
    	// FINAL :  ID-ORDER-DETAILS
    	// or : 	ID1,ID2,ID3-ORDER-DETAILS
-	validatePrepa(cart_tag) {
+	validatePrepa_old(cart_tag) {
 		// allowLogs();
     	const ids_stg = this.cartouches[cart_tag].allIds().join(',');
         const cmd_order= this.cartouches[cart_tag].order.server_version();
@@ -589,12 +598,21 @@ class Selection {
 		Mv.clear_select();
 		// disableLogs();
 	}
+	validatePrepa(cart_tag) {  
+	    const ids_stg = this.cartouches[cart_tag].allIds().join(',');  
+	    const order = this.cartouches[cart_tag].order;  
+	    const orderData = OrderAPI.formatOrderData(order);
+	    OrderAPI.sendOrder(order, ids_stg, orderData)  
+	        .then(response => this.addSelectedInfo(response))  
+	        .catch(error => logMessage('Order validation failed: ' + error.message));  
+	}
     setPrepa(order_name, cart_tag) {
     	// allowLogs();
         // On lance la preparation d'un ordre - Cela degage toutes les unites qui ne sont pas concernees
         this.preparingOrder = true;
         let units = this.cartouches[cart_tag].units;
-        this.currentOrder = Or.order_from_gui(units, order_name);
+        // this.currentOrder = Or.order_from_gui(units, order_name);
+        this.currentOrder = OrderFactory.createFromGUI(units, order_name);
     	this.drawCartouchesInside();
     	// disableLogs();
     };
